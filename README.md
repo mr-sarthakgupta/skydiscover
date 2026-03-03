@@ -22,11 +22,12 @@
 
 **SkyDiscover** is a modular framework for AI-driven scientific and algorithmic discovery, providing a unified interface for implementing, running, and fairly comparing discovery algorithms across 200+ optimization tasks.
 
-SkyDiscover includes two adaptive optimization algorithms:
+SkyDiscover introduces two new adaptive optimization algorithms:
 
 - **[AdaEvolve](https://arxiv.org/abs/2602.20133)**, which dynamically adjusts its optimization behavior based on observed progress.
 - **[EvoX](https://arxiv.org/abs/2602.23413)**, which dynamically evolves the optimization (evolution) strategy itself using LLMs on the fly.
 
+SkyDiscover also supports using OpenEvolve, ShinkaEvolve and GEPA to quickly benchmark these algorithms using their own source code. SkyDiscover also hosts native versions of OpenEvolve and GEPA under `openevolve_native` and `gepa_native` algorithms using the modular interface.
 > 🚧 This project is under active development.
 
 ---
@@ -99,11 +100,13 @@ Or use the Python API:
 from skydiscover import run_discovery
 
 result = run_discovery(
+    initial_program="initial_program.py",
     evaluator="evaluator.py",
-    search="evox",   # or "adaevolve"
+    search=[algo], # algo can be "openevolve", "gepa", "shinkaevolve", "adaevolve", "evox",
     model="gpt-5",
     iterations=100,
 )
+
 print(result.best_score, result.best_solution)
 ```
 
