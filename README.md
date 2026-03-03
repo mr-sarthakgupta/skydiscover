@@ -312,3 +312,7 @@ SkyDiscover is inspired by [AlphaEvolve](https://deepmind.google/discover/blog/a
   url = {https://skydiscover-ai.github.io/blog.html}
 }
 ```
+
+## 📬 Contact Us
+For questions or feedback, reach out to us:
+[lshu@berkeley.edu](mailto:lshu@berkeley.edu) · [mert_cemri@berkeley.edu](mailto:mert_cemri@berkeley.edu) · [shubham3@berkeley.edu](mailto:shubham3@berkeley.edu)
