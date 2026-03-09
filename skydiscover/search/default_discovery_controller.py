@@ -591,13 +591,16 @@ class DiscoveryController:
                     )
 
                     logger.warning(
-                        "Evaluation failed (attempt %s/%s): validity=%s, error=%s\n"
-                        "----- Generated Solution -----\n%s\n"
-                        "--------------------------",
+                        "Evaluation failed (attempt %s/%s): validity=%s, error=%s",
                         retry + 1,
                         retry_times,
                         child_metrics.get("validity"),
                         error_msg,
+                    )
+                    logger.debug(
+                        "Failed solution (attempt %s/%s):\n%s",
+                        retry + 1,
+                        retry_times,
                         child_solution,
                     )
 
