@@ -177,12 +177,31 @@ class Runner:
             if final_iteration > 0:
                 self._save_checkpoint(final_iteration)
 
+            # Re-evaluate best program in test mode (authoritative score).
+            best = self._get_best_program()
+            if best:
+                try:
+                    test_result = await self.discovery_controller.evaluator.evaluate_program(
+                        best.solution, best.id, mode="test"
+                    )
+                    for k, v in test_result.metrics.items():
+                        best.metrics[f"test_{k}"] = v
+                    logger.info(
+                        f"Test evaluation for best program: {format_metrics(test_result.metrics)}"
+                    )
+                    # Persist test metrics to disk so they survive the run.
+                    self._save_best_program(best)
+                except Exception as e:
+                    logger.warning(f"Test-mode re-evaluation failed: {e}")
+
         finally:
             # Stop the monitor
             early_stopped = (
                 self.discovery_controller is not None
                 and self.discovery_controller.early_stopping_triggered
             )
+            if self.discovery_controller is not None:
+                self.discovery_controller.close()
             self.discovery_controller = None
 
             if monitor_server:

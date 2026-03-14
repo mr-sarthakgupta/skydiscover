@@ -51,7 +51,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "evaluation_file",
-        help="Path to the evaluation file (must define an 'evaluate' function)",
+        help=(
+            "Evaluator: path to a Python file (must define evaluate()) "
+            "or a benchmark directory containing Dockerfile + evaluate.sh"
+        ),
     )
     parser.add_argument("--config", "-c", help="Path to configuration file (YAML)", default=None)
     parser.add_argument("--output", "-o", help="Output directory for results", default=None)

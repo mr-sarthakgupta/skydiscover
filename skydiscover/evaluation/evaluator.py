@@ -91,8 +91,16 @@ class Evaluator:
         self,
         program_solution: str,
         program_id: str = "",
+        mode: str = "train",
     ) -> EvaluationResult:
-        """Evaluate a program and return scores with optional artifacts."""
+        """Evaluate a program and return scores with optional artifacts.
+
+        Args:
+            program_solution: Source code of the candidate program.
+            program_id: Optional identifier for logging.
+            mode: ``"train"`` or ``"test"``.  Ignored by the Python evaluator
+                  (the containerized evaluator passes it to evaluate.sh).
+        """
         start_time = time.time()
         label = f" {program_id}" if program_id else ""
 

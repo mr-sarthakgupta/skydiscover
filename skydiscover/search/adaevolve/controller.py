@@ -24,7 +24,6 @@ from typing import Any, Dict, List, Optional
 
 from skydiscover.context_builder.adaevolve import AdaEvolveContextBuilder
 from skydiscover.context_builder.default import DefaultContextBuilder
-from skydiscover.evaluation.evaluator import Evaluator
 from skydiscover.evaluation.llm_judge import LLMJudge
 from skydiscover.llm.llm_pool import LLMPool
 from skydiscover.search.adaevolve.paradigm import ParadigmGenerator
@@ -74,20 +73,6 @@ class AdaEvolveController(DiscoveryController):
         self.llms = LLMPool(self.config.llm.models)
         self.context_builder = AdaEvolveContextBuilder(self.config)
 
-        llm_judge = None
-        if self.config.evaluator.llm_as_judge:
-            eval_prompt = DefaultContextBuilder(self.config)
-            eval_prompt.set_templates("evaluator_system_message")
-            llm_judge = LLMJudge(
-                LLMPool(self.config.llm.evaluator_models), eval_prompt, self.database
-            )
-
-        self.evaluator = Evaluator(
-            self.config.evaluator,
-            llm_judge=llm_judge,
-            max_concurrent=max(self.config.max_parallel_iterations, 4),
-        )
-
         # Paradigm generator (if paradigm breakthrough is enabled)
         # Note: We check database.use_paradigm_breakthrough at runtime, not this init-time flag
         # This ensures correct behavior after checkpoint load
@@ -120,12 +105,9 @@ class AdaEvolveController(DiscoveryController):
 
     def _load_evaluator_code(self) -> str:
         """Load evaluator source code for paradigm generation context."""
-        try:
-            if self.evaluation_file and Path(self.evaluation_file).exists():
-                return Path(self.evaluation_file).read_text()
-        except Exception as e:
-            logger.warning(f"Could not load evaluator code: {e}")
-        return ""
+        from skydiscover.search.utils.discovery_utils import load_evaluator_code
+
+        return load_evaluator_code(self.evaluation_file)
 
     # =========================================================================
     # JSON Logging for AdaEvolve Stats

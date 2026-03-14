@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from skydiscover.config import Config
 from skydiscover.context_builder.default import DefaultContextBuilder
 from skydiscover.context_builder.evox import EvoxContextBuilder
-from skydiscover.evaluation.evaluator import Evaluator
+from skydiscover.evaluation import create_evaluator
 from skydiscover.evaluation.llm_judge import LLMJudge
 from skydiscover.llm.base import LLMResponse
 from skydiscover.llm.llm_pool import LLMPool
@@ -83,7 +83,7 @@ class DiscoveryController:
             ctx.set_templates("evaluator_system_message")
             llm_judge = LLMJudge(self.evaluator_llms, ctx, self.database)
 
-        self.evaluator = Evaluator(
+        self.evaluator = create_evaluator(
             self.config.evaluator,
             llm_judge=llm_judge,
             max_concurrent=max(self.config.max_parallel_iterations, 4),
@@ -105,6 +105,11 @@ class DiscoveryController:
         logger.info(
             f"DiscoveryController initialized: num_context_programs={self.num_context_programs}"
         )
+
+    def close(self):
+        """Release resources held by the evaluator (e.g. Docker containers)."""
+        if hasattr(self.evaluator, "close"):
+            self.evaluator.close()
 
     # ------------------------------------------------------------------
     # Initialisation helpers

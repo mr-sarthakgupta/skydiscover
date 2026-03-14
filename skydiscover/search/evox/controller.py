@@ -292,12 +292,9 @@ class CoEvolutionController(DiscoveryController):
             return
 
         system_message = self.config.context_builder.system_message or ""
-        evaluator_code = ""
-        if self.evaluation_file:
-            try:
-                evaluator_code = Path(self.evaluation_file).read_text()
-            except Exception as e:
-                logger.warning(f"Failed to read search strategy evaluator file: {e}")
+        from skydiscover.search.utils.discovery_utils import load_evaluator_code
+
+        evaluator_code = load_evaluator_code(self.evaluation_file)
 
         try:
             problem_dir = Path(self.evaluation_file).parent if self.evaluation_file else None
