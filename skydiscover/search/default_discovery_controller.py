@@ -352,7 +352,10 @@ class DiscoveryController:
                 if feedback:
                     prompt = self.feedback_reader.apply_feedback(prompt)
 
+            llm_generation_time = 0.0
+            llm_start = time.time()
             result = await self._call_llm(prompt["system"], prompt["user"])
+            llm_generation_time = time.time() - llm_start
             llm_response = result.text
             if not llm_response:
                 return SerializableResult(error="Empty LLM response", iteration=iteration)
@@ -367,7 +370,9 @@ class DiscoveryController:
                 )
 
             child_id = str(uuid.uuid4())
+            eval_start = time.time()
             eval_result = await self.evaluator.evaluate_program(child_solution, child_id)
+            eval_time = time.time() - eval_start
 
             child = Program(
                 id=child_id,
@@ -385,6 +390,8 @@ class DiscoveryController:
                 parent_id=None,
                 other_context_ids=[],
                 iteration_time=time.time() - iteration_start,
+                llm_generation_time=llm_generation_time,
+                eval_time=eval_time,
                 prompt=prompt,
                 llm_response=llm_response,
                 iteration=iteration,
@@ -450,6 +457,7 @@ class DiscoveryController:
             )
 
             image_path = None  # set by image mode or evaluator
+            eval_time = 0.0
 
             # Build prompt with parent and context programs
             for retry in range(retry_times):
@@ -475,6 +483,8 @@ class DiscoveryController:
                         )
 
                 try:
+                    llm_generation_time = 0.0
+                    llm_start = time.time()
                     if self.config.language == "image":
                         child_id = str(uuid.uuid4())
                         user_content = build_image_content(
@@ -500,6 +510,7 @@ class DiscoveryController:
                     else:
                         result = await self._call_llm(prompt["system"], prompt["user"])
                         llm_response = result.text
+                    llm_generation_time = time.time() - llm_start
                 except Exception as e:
                     logger.error(f"LLM generation failed: {e}")
                     return SerializableResult(
@@ -564,7 +575,9 @@ class DiscoveryController:
                     child_id = str(uuid.uuid4())
 
                 eval_input = image_path if self.config.language == "image" else child_solution
+                eval_start = time.time()
                 child_eval_result = await self.evaluator.evaluate_program(eval_input, child_id)
+                eval_time = time.time() - eval_start
                 child_metrics = child_eval_result.metrics
                 # Extract image_path from evaluator metrics (non-image mode fallback)
                 if not image_path:
@@ -651,6 +664,8 @@ class DiscoveryController:
                         parent_id=parent.id,
                         other_context_ids=context_program_ids,
                         iteration_time=iteration_time,
+                        llm_generation_time=llm_generation_time,
+                        eval_time=eval_time,
                         prompt=prompt,
                         llm_response=llm_response,
                         attempts_used=retry_times,
@@ -680,6 +695,8 @@ class DiscoveryController:
                 parent_id=parent.id,
                 other_context_ids=context_program_ids,
                 iteration_time=iteration_time,
+                llm_generation_time=llm_generation_time,
+                eval_time=eval_time,
                 prompt=prompt,
                 llm_response=llm_response,
                 iteration=iteration,
@@ -902,6 +919,8 @@ class DiscoveryController:
                 f"Program {child_program.id} "
                 f"(parent: {result.parent_id}) "
                 f"completed in {result.iteration_time:.2f}s"
+                f" (llm: {result.llm_generation_time:.2f}s,"
+                f" eval: {result.eval_time:.2f}s)"
             )
 
         if iteration > 0 and iteration % self.config.checkpoint_interval == 0:
