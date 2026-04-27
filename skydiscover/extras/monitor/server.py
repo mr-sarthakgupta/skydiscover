@@ -195,10 +195,17 @@ class MonitorServer:
         """
         self._summary_model = model
         self._summary_api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
-        self._summary_api_base = api_base
+        self._summary_api_base = api_base.rstrip("/")
         self._summary_top_k = top_k
         self._summary_interval = interval
         self._summary_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="summary")
+
+        # Set initial placeholder text so UI knows summary is ready
+        if not self._summary_text:
+            self._summary_text = (
+                "Click 'Refresh Summary' to generate an AI summary of the top programs."
+            )
+
         logger.info(
             f"AI summary configured: model={model}, top_k={top_k}, "
             f"interval={interval or 'manual'}, api_key={'set' if self._summary_api_key else 'MISSING'}"

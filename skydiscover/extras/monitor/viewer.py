@@ -22,6 +22,8 @@ import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from dotenv import load_dotenv
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -200,6 +202,9 @@ def _to_monitor_format(prog: Dict, all_progs: Dict[str, Dict]) -> Dict:
 
 
 def main() -> None:
+    # Load environment variables from .env file
+    load_dotenv()
+
     parser = argparse.ArgumentParser(
         description="Replay viewer for completed SkyDiscover runs",
     )
@@ -211,6 +216,11 @@ def main() -> None:
         default="",
         help="LLM model for per-program summaries (default: gpt-5-mini). "
         "Requires OPENAI_API_KEY env var.",
+    )
+    parser.add_argument(
+        "--summary-api-base",
+        default="https://api.openai.com/v1",
+        help="API base URL for summary generation (default: https://api.openai.com/v1)",
     )
     args = parser.parse_args()
 
@@ -241,7 +251,7 @@ def main() -> None:
     if not summary_model and os.environ.get("OPENAI_API_KEY"):
         summary_model = "gpt-5-mini"
     if summary_model:
-        server.configure_summary(model=summary_model, interval=0)
+        server.configure_summary(model=summary_model, api_base=args.summary_api_base, interval=0)
 
     server.start()
 
