@@ -150,7 +150,7 @@ class AgenticGenerator:
                     },
                 )
 
-                result = self._run_tool(name, args, files_read)
+                result = await self._run_tool(name, args, files_read)
                 conversation.append(
                     {"role": "tool", "tool_call_id": tc_id, "content": result["content"]}
                 )
@@ -272,13 +272,21 @@ class AgenticGenerator:
     # Tools
     # ------------------------------------------------------------------
 
-    def _run_tool(self, name: str, args: Dict[str, Any], files_read: set) -> Dict[str, Any]:
+    async def _run_tool(self, name: str, args: Dict[str, Any], files_read: set) -> Dict[str, Any]:
         try:
             if name == "read_file":
                 return self._tool_read_file(args, files_read)
             elif name == "search":
                 return self._tool_search(args)
-            return _err(f"Unknown tool '{name}'. Available: read_file, search.")
+            elif name == "web_search":
+                from skydiscover.llm.tools.web_search_tool import web_search_handler
+                output, success = await web_search_handler(args)
+                return {"content": output, "_error": not success}
+            elif name == "hf_papers":
+                from skydiscover.llm.tools.papers_tool import hf_papers_handler
+                output, success = await hf_papers_handler(args)
+                return {"content": output, "_error": not success}
+            return _err(f"Unknown tool '{name}'. Available: read_file, search, web_search, hf_papers.")
         except Exception as e:
             return _err(f"Tool '{name}' error: {e}")
 
