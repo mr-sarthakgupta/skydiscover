@@ -151,6 +151,7 @@ class AgenticGenerator:
                 )
 
                 result = await self._run_tool(name, args, files_read)
+                logger.info("Step %d: tool=%s returned:\n%s", step, name, result.get("content", ""))
                 conversation.append(
                     {"role": "tool", "tool_call_id": tc_id, "content": result["content"]}
                 )
