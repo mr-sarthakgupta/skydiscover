@@ -1,16 +1,18 @@
 # Math benchmark: circle_packing
-# Usage: skydiscover-run initial_program.py evaluator.py -c config.yaml -s <strategy>
+# Usage: skydiscover-run initial_program.py evaluator.py -c config_trial.yaml --agentic
 language: python
 diff_based_generation: true
-max_iterations: 100
+max_iterations: 1
 checkpoint_interval: 10
 max_solution_length: 60000
 llm:
   models:
-    - name: "gemini/gemini-1.5-pro"
+    - name: "gemini/gemini-2.5-flash"
       weight: 1.0
   max_tokens: 16384
   timeout: 600
+agentic:
+  enabled: true
 prompt:
   system_message: 'You are an expert mathematician specializing in circle packing problems and computational geometry. Your
     task is to improve a constructor function that directly produces a specific arrangement of 26 circles in a unit square,
@@ -45,9 +47,7 @@ evaluator:
 
 # Live monitor dashboard
 monitor:
-  enabled: true
-  port: 8765
-  host: "127.0.0.1"
+  enabled: false
 
 # Human feedback
-human_feedback_enabled: true
+human_feedback_enabled: false
