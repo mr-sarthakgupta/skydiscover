@@ -185,5 +185,45 @@
         ]
       }
     }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "fetch_webpage",
+      "description": "Fetch a webpage by URL, convert it to plain text, and save it as a local file so you can read it with read_file.\n\nTypical flow:\n  1. web_search → get URLs\n  2. fetch_webpage(url=...) → get saved_path\n  3. read_file(path=saved_path) → read content\n\nThe saved file is plain text (HTML tags stripped), stored under reference/web_<slug>.txt inside the codebase root. Returns the relative path to use with read_file.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The full URL to fetch (must start with http:// or https://)."
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "run_command",
+      "description": "Execute a read-only shell command inside the codebase root directory and return its stdout/stderr output.\n\nUse this to inspect and analyse data files, run existing scripts, count lines, pretty-print JSON/CSV, profile code, etc.\n\nRestrictions:\n- Only a fixed allowlist of executables is permitted (python, python3, cat, head, tail, wc, grep, rg, find, ls, awk, sed, jq, sort, uniq, etc.).\n- Shell operators (|, &, ;, >, <) are NOT allowed — pipe output by saving to a file first or use awk/python inline.\n- Destructive commands (rm, mv, cp, pip, curl, wget, etc.) are blocked.\n- The working directory is always the codebase root.\n- Maximum runtime: 120 seconds (default 30).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "The command to run (e.g. 'python analyse.py', 'head -n 20 data/results.csv', 'wc -l src/*.py')."
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Optional wall-clock timeout in seconds (1–120, default 30)."
+          }
+        },
+        "required": ["command"],
+        "additionalProperties": false
+      }
+    }
   }
 ]

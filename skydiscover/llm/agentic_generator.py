@@ -287,7 +287,19 @@ class AgenticGenerator:
                 from skydiscover.llm.tools.papers_tool import hf_papers_handler
                 output, success = await hf_papers_handler(args)
                 return {"content": output, "_error": not success}
-            return _err(f"Unknown tool '{name}'. Available: read_file, search, web_search, hf_papers.")
+            elif name == "fetch_webpage":
+                from skydiscover.llm.tools.fetch_webpage_tool import fetch_webpage_handler
+                output, success = await fetch_webpage_handler(
+                    args, codebase_root=self.config.codebase_root
+                )
+                return {"content": output, "_error": not success}
+            elif name == "run_command":
+                from skydiscover.llm.tools.run_command_tool import run_command_handler
+                output, success = await run_command_handler(
+                    args, codebase_root=self.config.codebase_root
+                )
+                return {"content": output, "_error": not success}
+            return _err(f"Unknown tool '{name}'. Available: read_file, search, web_search, hf_papers, fetch_webpage, run_command.")
         except Exception as e:
             return _err(f"Tool '{name}' error: {e}")
 
