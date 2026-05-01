@@ -1162,8 +1162,8 @@ _OPERATIONS = {
 # Tool spec + handler
 # ---------------------------------------------------------------------------
 
-HF_PAPERS_TOOL_SPEC = {
-    "name": "hf_papers",
+RESEARCH_PAPERS_TOOL_SPEC = {
+    "name": "research_papers",
     "description": (
         "Discover ML research papers, analyze citations, search paper contents, and find linked resources.\n\n"
         "Combines HuggingFace Hub, arXiv, and Semantic Scholar. Use for exploring research areas, "
@@ -1271,7 +1271,7 @@ HF_PAPERS_TOOL_SPEC = {
 }
 
 
-async def hf_papers_handler(arguments: dict[str, Any]) -> tuple[str, bool]:
+async def research_papers_handler(arguments: dict[str, Any]) -> tuple[str, bool]:
     """Handler for agent tool router."""
     operation = arguments.get("operation")
     if not operation:
@@ -1293,3 +1293,8 @@ async def hf_papers_handler(arguments: dict[str, Any]) -> tuple[str, bool]:
         return f"Request error: {e}", False
     except Exception as e:
         return f"Error in {operation}: {e}", False
+
+
+# Backwards-compatible alias (older prompts/configs)
+HF_PAPERS_TOOL_SPEC = RESEARCH_PAPERS_TOOL_SPEC
+hf_papers_handler = research_papers_handler

@@ -300,6 +300,13 @@ class AgenticConfig:
         "build",
     )
 
+    # Command execution (run_command tool)
+    run_command_enabled: bool = True
+    allow_unsafe_commands: bool = False  # if True, tool may run via shell=True when requested
+    run_command_default_timeout: int = 30
+    run_command_max_timeout: int = 120
+    run_command_max_output_chars: int = 20_000
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # 3. Evaluator — scores candidates and logs metadata (evaluation/)
@@ -792,6 +799,11 @@ class Config:
                 "repo_map_max_depth": self.agentic.repo_map_max_depth,
                 "allowed_extensions": list(self.agentic.allowed_extensions),
                 "excluded_dirs": list(self.agentic.excluded_dirs),
+                "run_command_enabled": self.agentic.run_command_enabled,
+                "allow_unsafe_commands": self.agentic.allow_unsafe_commands,
+                "run_command_default_timeout": self.agentic.run_command_default_timeout,
+                "run_command_max_timeout": self.agentic.run_command_max_timeout,
+                "run_command_max_output_chars": self.agentic.run_command_max_output_chars,
             },
             # Live monitor
             "monitor": {

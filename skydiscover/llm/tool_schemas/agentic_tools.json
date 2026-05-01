@@ -86,7 +86,7 @@
   {
     "type": "function",
     "function": {
-      "name": "hf_papers",
+      "name": "research_papers",
       "description": "Discover ML research papers, analyze citations, search paper contents, and find linked resources.\n\nCombines HuggingFace Hub, arXiv, and Semantic Scholar. Use for exploring research areas, finding datasets for a task, tracing citation chains, or implementing a paper's approach.\n\nTypical flows:\n  search \u2192 read_paper \u2192 find_all_resources \u2192 hf_inspect_dataset\n  search \u2192 paper_details \u2192 citation_graph \u2192 read_paper (trace influence)\n  snippet_search \u2192 paper_details \u2192 read_paper (find specific claims)\n\nOperations:\n- trending: Get trending daily papers, optionally filter by topic keyword\n- search: Search papers. Uses HF by default (ML-tuned). Add date_from/min_citations/categories to use Semantic Scholar with filters\n- paper_details: Metadata, abstract, AI summary, github link\n- read_paper: Read paper contents \u2014 without section: abstract + TOC; with section: full text\n- citation_graph: Get references and citations for a paper with influence flags and citation intents\n- snippet_search: Semantic search over full-text passages from 12M+ papers\n- recommend: Find similar papers (single paper or positive/negative examples)\n- find_datasets: Find datasets linked to a paper\n- find_models: Find models linked to a paper\n- find_collections: Find collections that include a paper\n- find_all_resources: Parallel fetch of datasets + models + collections for a paper",
       "parameters": {
         "type": "object",
@@ -219,6 +219,10 @@
           "timeout": {
             "type": "integer",
             "description": "Optional wall-clock timeout in seconds (1–120, default 30)."
+          },
+          "unsafe": {
+            "type": "boolean",
+            "description": "If true, run the command through the system shell for full commandline capabilities (pipes, redirects, compound commands). This is disabled by default and requires agentic.allow_unsafe_commands=true in config."
           }
         },
         "required": ["command"],

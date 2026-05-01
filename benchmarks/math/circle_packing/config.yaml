@@ -7,7 +7,7 @@ checkpoint_interval: 10
 max_solution_length: 60000
 llm:
   models:
-    - name: "gemini/gemini-1.5-pro"
+    - name: "gemini/gemini-2.5-flash"
       weight: 1.0
   max_tokens: 16384
   timeout: 600

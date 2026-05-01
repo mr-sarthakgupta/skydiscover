@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import html
 import json
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -18,6 +19,8 @@ from typing import Any
 from urllib.parse import parse_qsl, parse_qs, urlencode, urlparse, urlunparse
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_SEARCH_URL = "https://html.duckduckgo.com/html/"
 WEB_SEARCH_BASE_URL_ENV = "CLAWD_WEB_SEARCH_BASE_URL"
@@ -190,6 +193,12 @@ def execute_web_search(
         hits = [hit for hit in hits if not host_matches_list(hit.url, blocked_domains)]
 
     hits = dedupe_hits(hits)[:MAX_RESULTS]
+    logger.info(
+        "web_search: query=%r results=%d (%.1fs)",
+        query,
+        len(hits),
+        time.monotonic() - started,
+    )
     rendered_hits = "\n".join(f"- [{hit.title}]({hit.url})" for hit in hits)
     if hits:
         summary = (
