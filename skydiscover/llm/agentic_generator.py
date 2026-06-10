@@ -150,7 +150,8 @@ class AgenticGenerator:
                     },
                 )
 
-                result = self._run_tool(name, args, files_read)
+                result = await self._run_tool(name, args, files_read)
+                logger.info("Step %d: tool=%s returned:\n%s", step, name, result.get("content", ""))
                 conversation.append(
                     {"role": "tool", "tool_call_id": tc_id, "content": result["content"]}
                 )
@@ -272,13 +273,42 @@ class AgenticGenerator:
     # Tools
     # ------------------------------------------------------------------
 
-    def _run_tool(self, name: str, args: Dict[str, Any], files_read: set) -> Dict[str, Any]:
+    async def _run_tool(self, name: str, args: Dict[str, Any], files_read: set) -> Dict[str, Any]:
         try:
             if name == "read_file":
                 return self._tool_read_file(args, files_read)
             elif name == "search":
                 return self._tool_search(args)
-            return _err(f"Unknown tool '{name}'. Available: read_file, search.")
+            elif name == "web_search":
+                from skydiscover.llm.tools.web_search_tool import web_search_handler
+                output, success = await web_search_handler(args)
+                return {"content": output, "_error": not success}
+            elif name in ("research_papers", "hf_papers"):
+                from skydiscover.llm.tools.papers_tool import research_papers_handler
+                output, success = await research_papers_handler(args)
+                return {"content": output, "_error": not success}
+            elif name == "fetch_webpage":
+                from skydiscover.llm.tools.fetch_webpage_tool import fetch_webpage_handler
+                output, success = await fetch_webpage_handler(
+                    args, codebase_root=self.config.codebase_root
+                )
+                return {"content": output, "_error": not success}
+            elif name == "run_command":
+                from skydiscover.llm.tools.run_command_tool import run_command_handler
+                if not getattr(self.config, "run_command_enabled", True):
+                    return _err("run_command is disabled by configuration (agentic.run_command_enabled=false).")
+                output, success = await run_command_handler(
+                    args,
+                    codebase_root=self.config.codebase_root,
+                    run_command_default_timeout=getattr(self.config, "run_command_default_timeout", 30),
+                    run_command_max_timeout=getattr(self.config, "run_command_max_timeout", 120),
+                    run_command_max_output_chars=getattr(self.config, "run_command_max_output_chars", 20_000),
+                    allow_unsafe_commands=getattr(self.config, "allow_unsafe_commands", False),
+                )
+                return {"content": output, "_error": not success}
+            return _err(
+                f"Unknown tool '{name}'. Available: read_file, search, web_search, research_papers, fetch_webpage, run_command."
+            )
         except Exception as e:
             return _err(f"Tool '{name}' error: {e}")
 
@@ -322,6 +352,8 @@ class AgenticGenerator:
 
         files_read.add(resolved)
         rel = os.path.relpath(resolved, root)
+        if rel.startswith("reference" + os.sep) or rel.startswith("reference/"):
+            logger.info("read_file: loaded reference file %s (%d lines)", rel, total)
         numbered = [
             f"{i:4d} | {ln.rstrip(chr(10))}"
             for i, ln in enumerate(content.splitlines(True), start=start + 1)
