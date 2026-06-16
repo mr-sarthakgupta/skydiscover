@@ -31,6 +31,10 @@ _PROVIDERS: Dict[str, tuple] = {
     "deepseek": ("https://api.deepseek.com/v1", ["DEEPSEEK_API_KEY"]),
     "mistral": ("https://api.mistral.ai/v1", ["MISTRAL_API_KEY"]),
     "cohere": ("https://api.cohere.com/v1", ["CO_API_KEY", "COHERE_API_KEY"]),
+    "bedrock": (
+        "bedrock",
+        ["AWS_BEARER_TOKEN_BEDROCK", "AWS_ACCESS_KEY_ID"],
+    ),
     "huggingface": (None, ["HF_TOKEN", "HUGGINGFACE_API_KEY"]),
     "ollama": (None, []),
     "vllm": (None, []),
@@ -48,6 +52,10 @@ _BARE_PREFIX_MAP: Dict[str, str] = {
     "mistral-": "mistral",
     "command-": "cohere",
 }
+
+
+def _is_bedrock_api_base(api_base: Optional[str]) -> bool:
+    return bool(api_base and str(api_base).startswith("bedrock"))
 
 
 def _parse_model_spec(model_str: str) -> tuple:
@@ -83,6 +91,8 @@ def _resolve_api_key_from_env(env_vars: Optional[List[str]] = None) -> Optional[
         key = os.environ.get(var)
         if key:
             return key
+    if env_vars == _PROVIDERS["bedrock"][1]:
+        return None
     return os.environ.get("OPENAI_API_KEY")
 
 
@@ -204,7 +214,13 @@ class LLMConfig(LLMModelConfig):
                     model.name.startswith("openai/")
                     or any(model.name.startswith(p) for p in _BARE_PREFIX_MAP)
                 )
-                if provider_base and not (user_set_api_base and is_fallback):
+                if (
+                    provider == "bedrock"
+                    and user_set_api_base
+                    and self.api_base.startswith("bedrock:")
+                ):
+                    model.api_base = self.api_base
+                elif provider_base and not (user_set_api_base and is_fallback):
                     model.api_base = provider_base
                 if model.api_key is None:
                     model.api_key = _resolve_api_key_from_env(env_vars)
@@ -248,11 +264,11 @@ class AgenticConfig:
     codebase_root: Optional[str] = None
 
     # Agent loop limits
-    max_steps: int = 5
+    max_steps: int = 8
 
     # Timeouts (seconds)
-    per_step_timeout: float = 60.0
-    overall_timeout: float = 300.0
+    per_step_timeout: float = 120.0
+    overall_timeout: float = 600.0
 
     # Context management
     max_context_chars: int = 400_000
@@ -299,6 +315,13 @@ class AgenticConfig:
         "dist",
         "build",
     )
+
+    # Command execution (run_command tool)
+    run_command_enabled: bool = True
+    allow_unsafe_commands: bool = False  # if True, tool may run via shell=True when requested
+    run_command_default_timeout: int = 100
+    run_command_max_timeout: int = 300
+    run_command_max_output_chars: int = 20_000
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -792,6 +815,11 @@ class Config:
                 "repo_map_max_depth": self.agentic.repo_map_max_depth,
                 "allowed_extensions": list(self.agentic.allowed_extensions),
                 "excluded_dirs": list(self.agentic.excluded_dirs),
+                "run_command_enabled": self.agentic.run_command_enabled,
+                "allow_unsafe_commands": self.agentic.allow_unsafe_commands,
+                "run_command_default_timeout": self.agentic.run_command_default_timeout,
+                "run_command_max_timeout": self.agentic.run_command_max_timeout,
+                "run_command_max_output_chars": self.agentic.run_command_max_output_chars,
             },
             # Live monitor
             "monitor": {
@@ -827,8 +855,12 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Config:
     # because __post_init__ already pushed the hardcoded default to all models.
     api_base = os.environ.get("OPENAI_API_BASE") or os.environ.get("OPENAI_BASE_URL")
     if api_base:
-        config.llm.api_base = api_base
-        config.llm.update_model_params({"api_base": api_base}, overwrite=True)
+        models = config.llm.models + config.llm.evaluator_models + config.llm.guide_models
+        non_bedrock_models = [m for m in models if not _is_bedrock_api_base(m.api_base)]
+        if non_bedrock_models:
+            config.llm.api_base = api_base
+            for model in non_bedrock_models:
+                model.api_base = api_base
 
     # Determine which API key to use (provider-aware)
     if not config.llm.api_key:
@@ -861,19 +893,24 @@ def bridge_provider_env(config: Config) -> None:
     if not config.llm.models:
         return
     model = config.llm.models[0]
+    if _is_bedrock_api_base(model.api_base):
+        return
     if not model.api_key:
         return
 
-    # Use _parse_model_spec to get the right env vars for this model
+    # Use _parse_model_spec to get the right env vars for this model.
     _, _, _, env_vars = _parse_model_spec(model.name or "")
     for var in env_vars:
         os.environ.setdefault(var, model.api_key)
 
-    # Always ensure OPENAI_API_KEY is set — many tools (ShinkaEvolve, etc.) expect it
-    os.environ.setdefault("OPENAI_API_KEY", model.api_key)
+    # Always ensure OPENAI_API_KEY is set for OpenAI-compatible providers — many
+    # tools (ShinkaEvolve, etc.) expect it. Bedrock uses native AWS credentials.
+    if not _is_bedrock_api_base(model.api_base):
+        os.environ.setdefault("OPENAI_API_KEY", model.api_key)
 
-    # Set OPENAI_API_BASE so backends that check it can find the endpoint
-    if model.api_base:
+    # Set OPENAI_API_BASE so OpenAI-compatible backends that check it can find
+    # the endpoint. Native providers such as Bedrock do not use this variable.
+    if model.api_base and not _is_bedrock_api_base(model.api_base):
         os.environ.setdefault("OPENAI_API_BASE", model.api_base)
 
 

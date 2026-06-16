@@ -82,7 +82,11 @@ def parse_args() -> argparse.Namespace:
         "--model",
         "-m",
         default=None,
-        help="LLM model(s) for solution generation, comma-separated (e.g. 'gpt-5', 'gpt-5,gemini/gemini-3-pro')",
+        help=(
+            "LLM model(s) for solution generation, comma-separated "
+            "(e.g. 'gpt-5', 'gpt-5,gemini/gemini-3-pro', "
+            "'bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0')"
+        ),
     )
     parser.add_argument(
         "--search",
@@ -90,6 +94,12 @@ def parse_args() -> argparse.Namespace:
         choices=_SEARCH_CHOICES,
         default=None,
         help="Search algorithm to use",
+    )
+    parser.add_argument(
+        "--max-cost",
+        type=float,
+        default=10.0,
+        help="Maximum LLM cost in USD before stopping (default: $10.00)",
     )
 
     return parser.parse_args()
@@ -104,6 +114,11 @@ async def main_async() -> int:
     """Async entry point for the CLI. Returns exit code."""
     args = parse_args()
     _configure_logging(args.log_level)
+
+    from skydiscover.llm.cost_tracker import global_cost_tracker
+
+    global_cost_tracker.max_cost = args.max_cost
+    print(f"LLM cost budget: ${args.max_cost:.2f}")
 
     if args.initial_program and not os.path.exists(args.initial_program):
         print(f"Error: Initial program file '{args.initial_program}' not found", file=sys.stderr)
@@ -223,6 +238,7 @@ async def main_async() -> int:
                     stop_monitor(monitor_server)
 
                 print(f"\nDiscovery complete! Best score: {result.best_score:.4f}")
+                print(f"\n{global_cost_tracker.summary()}")
                 return 0
 
             if search_type in KNOWN_EXTERNAL:
@@ -273,9 +289,11 @@ async def main_async() -> int:
             print(f"\nLatest checkpoint: {latest_checkpoint}")
             print(f"To resume: --checkpoint {latest_checkpoint}")
 
+        print(f"\n{global_cost_tracker.summary()}")
         return 0
 
     except Exception as exc:
+        print(f"\n{global_cost_tracker.summary()}")
         print(f"Error: {exc}", file=sys.stderr)
         traceback.print_exc()
         return 1

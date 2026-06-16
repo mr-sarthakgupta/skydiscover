@@ -98,6 +98,9 @@ class AdaEvolveController(DiscoveryController):
         self._iteration_stats_file = None
         self._last_sampling_mode: Optional[str] = None
         self._last_sampling_intensity: Optional[float] = None
+        self._run_start_iteration: Optional[int] = None
+        self._run_max_iterations: Optional[int] = None
+        self._run_total_iterations: Optional[int] = None
 
         logger.info(
             f"AdaEvolveController initialized "
@@ -197,6 +200,12 @@ class AdaEvolveController(DiscoveryController):
                 "iteration_time_seconds": iteration_time,
                 "llm_generation_time_seconds": llm_generation_time,
                 "eval_time_seconds": eval_time,
+                "current_iteration_best_score": stats.get("global", {}).get(
+                    "current_iteration_best_score"
+                ),
+                "current_iteration_best_program_id": stats.get("global", {}).get(
+                    "current_iteration_best_program_id"
+                ),
             }
 
             # Add child program info if available
@@ -231,6 +240,9 @@ class AdaEvolveController(DiscoveryController):
     ) -> Optional[Program]:
         """Run evolution with adaptive search intensity and island rotation."""
         total = start_iteration + max_iterations
+        self._run_start_iteration = start_iteration
+        self._run_max_iterations = max_iterations
+        self._run_total_iterations = total
         logger.info(
             f"AdaEvolve: Running {max_iterations} iterations "
             f"across {self.database.num_islands} islands"
@@ -534,6 +546,24 @@ class AdaEvolveController(DiscoveryController):
                 "program_metrics": parent.metrics,
                 "other_context_programs": context_programs_dict,
                 # AdaEvolve-specific keys (consumed by AdaEvolveContextBuilder)
+                "iteration_state": {
+                    "current_iteration": iteration,
+                    "start_iteration": self._run_start_iteration,
+                    "max_iterations": self._run_max_iterations,
+                    "total_iterations": self._run_total_iterations,
+                    "remaining_iterations": (
+                        max(0, self._run_total_iterations - iteration - 1)
+                        if self._run_total_iterations is not None
+                        else None
+                    ),
+                    "visible_reference_dir": "reference",
+                    "visible_run_history_dir": "reference/current_adaevolve_run",
+                    "visible_iteration_stats": (
+                        "reference/current_adaevolve_run/adaevolve_iteration_stats.jsonl"
+                    ),
+                    "visible_checkpoints_dir": "reference/current_adaevolve_run/checkpoints",
+                    "visible_agentic_traces_glob": "reference/agentic_trace_*.json",
+                },
                 "paradigm": paradigm,
                 "siblings": siblings,
                 "error_context": error_context,
@@ -666,23 +696,6 @@ class AdaEvolveController(DiscoveryController):
 
         metrics = eval_result.metrics
         artifacts = eval_result.artifacts
-
-        # Check for eval failure (e.g., constraint violation, malformed solution)
-        if (
-            metrics.get("validity") in (0, -1)
-            or (metrics.get("timeout") is True and metrics.get("validity") is None)
-            or (
-                metrics.get("combined_score") == 0
-                and (metrics.get("error") is not None or "error" in (artifacts or {}))
-            )
-        ):
-            error_msg = (
-                (metrics.get("error") if isinstance(metrics.get("error"), str) else None)
-                or (artifacts or {}).get("error")
-                or metrics.get("error_message")
-                or "Evaluation failed"
-            )
-            return SerializableResult(error=f"Eval failure: {error_msg}", iteration=iteration)
 
         # Extract image_path from evaluator metrics (non-image mode fallback)
         if not image_path:

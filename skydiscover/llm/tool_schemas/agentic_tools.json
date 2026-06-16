@@ -222,7 +222,7 @@
           },
           "unsafe": {
             "type": "boolean",
-            "description": "If true, run the command through the system shell for full commandline capabilities (pipes, redirects, compound commands). Disabled by default."
+            "description": "If true, run the command through the system shell for full commandline capabilities (pipes, redirects, compound commands). This is disabled by default and requires agentic.allow_unsafe_commands=true in config."
           }
         },
         "required": ["command"],

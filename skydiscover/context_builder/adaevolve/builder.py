@@ -201,28 +201,34 @@ class AdaEvolveContextBuilder(DefaultContextBuilder):
             parent_program = current_program
 
         language = self.config.language or "python"
+        iteration_state = context.get("iteration_state")
         paradigm = context.get("paradigm")
         siblings = context.get("siblings", [])
         error_context = context.get("error_context")
 
         sections: List[str] = []
 
-        # 1. Evaluator feedback from parent artifacts
+        # 1. Current run progress and visible artifact locations
+        iteration_section = self._format_iteration_state(iteration_state)
+        if iteration_section:
+            sections.append(iteration_section)
+
+        # 2. Evaluator feedback from parent artifacts
         feedback_section = self._format_evaluator_feedback(parent_program)
         if feedback_section:
             sections.append(feedback_section)
 
-        # 2. Paradigm breakthrough guidance
+        # 3. Paradigm breakthrough guidance
         if paradigm:
             sections.append(self._format_paradigm_guidance(paradigm, language))
 
-        # 3. Sibling context
+        # 4. Sibling context
         if siblings:
             sibling_section = self._format_sibling_context(siblings, parent_program)
             if sibling_section:
                 sections.append(sibling_section)
 
-        # 4. Error retry context
+        # 5. Error retry context
         if error_context:
             sections.append(self._format_error_context(error_context))
 
@@ -230,6 +236,43 @@ class AdaEvolveContextBuilder(DefaultContextBuilder):
             return ""
 
         return "\n\n".join(sections)
+
+    def _format_iteration_state(self, iteration_state: Optional[Dict[str, Any]]) -> Optional[str]:
+        """Render live iteration progress and model-visible artifact paths."""
+        if not iteration_state:
+            return None
+
+        current = iteration_state.get("current_iteration")
+        total = iteration_state.get("total_iterations")
+        remaining = iteration_state.get("remaining_iterations")
+        start = iteration_state.get("start_iteration")
+        max_iterations = iteration_state.get("max_iterations")
+
+        if current is None:
+            return None
+
+        progress = f"Current iteration: {current}"
+        if total is not None:
+            progress += f" of {total - 1}"
+        if remaining is not None:
+            progress += f" ({remaining} iterations remaining after this one)"
+
+        lines = ["### Run Progress", progress]
+        if start is not None and max_iterations is not None:
+            lines.append(f"Run window: start={start}, requested_iterations={max_iterations}.")
+
+        visible_paths = [
+            ("Run history summary", iteration_state.get("visible_run_history_dir")),
+            ("Iteration stats", iteration_state.get("visible_iteration_stats")),
+            ("Checkpoint programs", iteration_state.get("visible_checkpoints_dir")),
+            ("Agentic traces", iteration_state.get("visible_agentic_traces_glob")),
+        ]
+        path_lines = [f"- {label}: `{path}`" for label, path in visible_paths if path]
+        if path_lines:
+            lines.append("Model-visible history and trace locations:")
+            lines.extend(path_lines)
+
+        return "\n".join(lines)
 
     def _identify_improvement_areas(
         self,

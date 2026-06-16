@@ -22,6 +22,7 @@ dependencies = [
 
 [project.optional-dependencies]
 math = [
+    "scikit-optimize>=0.10.0",
     "scipy>=1.11.0",
     "sympy>=1.14.0",
     "jax>=0.6.2",
@@ -48,6 +49,9 @@ external = [
     "openevolve",
     "gepa[full]",
     "litellm>=1.81",  # gepa[full] needs litellm, but uv override-dependencies strips the [full] extra
+]
+bedrock = [
+    "boto3>=1.34.0",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -76,6 +80,12 @@ prompt-optimization = [
     "diskcache>=5.6.3",
     "ujson>=5.11.0",
 ]
+pysr-symbolic = [
+    "pysr",
+    "scikit-learn>=1.0.0",
+    "sympy>=1.12.0",
+    "pandas>=1.5.0",
+]
 
 [tool.uv]
 override-dependencies = ["httpx>=0.28.1", "gepa>=0.0.26"]
@@ -83,6 +93,7 @@ override-dependencies = ["httpx>=0.28.1", "gepa>=0.0.26"]
 [tool.uv.sources]
 openevolve = { git = "https://github.com/algorithmicsuperintelligence/openevolve.git", branch = "main" }
 gepa = { git = "https://github.com/gepa-ai/gepa.git", branch = "main" }
+pysr = { path = "../pysr", editable = true }
 
 [tool.black]
 line-length = 100
@@ -118,7 +129,6 @@ include = ["skydiscover*"]
 [tool.setuptools.package-data]
 skydiscover = [
     "context_builder/*/templates/*.txt",
-    "llm/tool_schemas/*.json",
     "search/evox/config/*.yaml",
     "search/evox/config/*.txt",
     "extras/external/defaults/*.yaml",

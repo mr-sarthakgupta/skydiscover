@@ -1,7 +1,9 @@
 import json
 import logging
 import os
+from pathlib import Path
 import signal
+import shutil
 import sys
 import time
 import uuid
@@ -128,6 +130,9 @@ class Runner:
         else:
             start_iteration = self.database.last_iteration
 
+        if start_iteration == 0 and len(self.database.programs) == 0:
+            self._clear_visible_run_history_snapshot()
+
         # Create the discovery controller input
         controller_input = DiscoveryControllerInput(
             config=self.config,
@@ -172,11 +177,18 @@ class Runner:
                 self._save_checkpoint(iteration)
 
             # MAIN LOOP: Run the discovery
-            await self.discovery_controller.run_discovery(
-                discovery_start,
-                max_iterations,
-                checkpoint_callback=checkpoint_cb,
-            )
+            from skydiscover.llm.cost_tracker import CostLimitExceeded
+
+            try:
+                await self.discovery_controller.run_discovery(
+                    discovery_start,
+                    max_iterations,
+                    checkpoint_callback=checkpoint_cb,
+                )
+            except CostLimitExceeded as exc:
+                logger.info("Cost limit reached, stopping discovery: %s", exc)
+                print(f"\nCost limit reached: {exc}")
+                print("Saving best result found so far...")
 
             self._sync_database()
             final_iteration = discovery_start + max_iterations - 1
@@ -229,6 +241,36 @@ class Runner:
 
         logger.warning("No valid programs found")
         return None
+
+    def _visible_run_history_snapshot_dir(self) -> Optional[Path]:
+        """Return the benchmark-visible run-history snapshot directory, if any."""
+        if not self.initial_program_path:
+            return None
+
+        path = Path(self.initial_program_path).resolve()
+        for parent in path.parents:
+            if parent.name == "pysr_symbolic":
+                return parent / "reference" / "current_adaevolve_run"
+        return None
+
+    def _clear_visible_run_history_snapshot(self) -> None:
+        """Clear stale visible run-history snapshots before a fresh run."""
+        snapshot_dir = self._visible_run_history_snapshot_dir()
+        if snapshot_dir is None:
+            return
+
+        snapshot_dir = snapshot_dir.resolve()
+        if snapshot_dir.name != "current_adaevolve_run" or snapshot_dir.parent.name != "reference":
+            logger.warning("Refusing to clear unexpected run-history path: %s", snapshot_dir)
+            return
+
+        try:
+            if snapshot_dir.exists():
+                shutil.rmtree(snapshot_dir)
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            logger.info("Cleared visible run-history snapshot: %s", snapshot_dir)
+        except Exception as exc:
+            logger.warning("Failed to clear visible run-history snapshot %s: %s", snapshot_dir, exc)
 
     # ------------------------------------------------------------------
     # Initial program
