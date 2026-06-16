@@ -59,6 +59,7 @@ llm:
 | Anthropic | `claude-sonnet-4-6` or `anthropic/claude-sonnet-4-6` | ANTHROPIC_API_KEY |
 | DeepSeek | `deepseek-chat` or `deepseek/deepseek-chat` | DEEPSEEK_API_KEY |
 | Mistral | `mistral-large` or `mistral/mistral-large` | MISTRAL_API_KEY |
+| AWS Bedrock | `bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0` | AWS_BEARER_TOKEN_BEDROCK or AWS credential chain |
 | Ollama / vLLM | `ollama/llama3`, `vllm/my-model` | — |
 
 <details>
@@ -100,6 +101,23 @@ llm:
 ```
 
 You can also set OPENAI_API_BASE or OPENAI_BASE_URL env vars to override the config globally.
+
+**AWS Bedrock:**
+```yaml
+llm:
+  models:
+    - name: "bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+  # Optional region override. If omitted, SkyDiscover checks BEDROCK_AWS_REGION,
+  # AWS_REGION, AWS_DEFAULT_REGION, then falls back to us-east-1.
+  api_base: "bedrock:us-east-1"
+```
+
+Bedrock can use `AWS_BEARER_TOKEN_BEDROCK` for Bedrock API keys, or the normal
+AWS credential chain such as `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`,
+`AWS_SESSION_TOKEN`, or `AWS_PROFILE`. For compatibility, SkyDiscover also
+recognizes Bedrock API keys with an `ABSK` prefix if they are stored as
+`aws_session_token` in `~/.aws/credentials`. Install the extra dependency with
+`uv sync --extra bedrock` or install `boto3` directly.
 
 </details>
 

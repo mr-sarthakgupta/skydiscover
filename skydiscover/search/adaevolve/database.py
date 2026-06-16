@@ -1012,6 +1012,27 @@ class AdaEvolveDatabase(ProgramDatabase):
         # Global statistics
         # =========================================================================
         best_program = self.get_best_program()
+        current_iteration_programs = [
+            program
+            for program in self.programs.values()
+            if program.iteration_found == iteration
+        ]
+        current_iteration_best_program = (
+            max(current_iteration_programs, key=self._get_fitness)
+            if current_iteration_programs
+            else None
+        )
+        raw_current_iteration_best_score = (
+            self._get_fitness(current_iteration_best_program)
+            if current_iteration_best_program is not None
+            else None
+        )
+        current_iteration_best_score = (
+            raw_current_iteration_best_score
+            if raw_current_iteration_best_score is not None
+            and not math.isinf(raw_current_iteration_best_score)
+            else None
+        )
         pareto_front = self.get_global_pareto_front() if self.is_multiobjective_enabled() else []
         global_stats = {
             "iteration": iteration,
@@ -1021,6 +1042,13 @@ class AdaEvolveDatabase(ProgramDatabase):
                 self._global_best_score if not math.isinf(self._global_best_score) else None
             ),
             "global_best_program_id": self.best_program_id,
+            "current_iteration_best_score": current_iteration_best_score,
+            "current_iteration_best_program_id": (
+                current_iteration_best_program.id
+                if current_iteration_best_program is not None
+                else None
+            ),
+            "current_iteration_program_count": len(current_iteration_programs),
             "optimization_mode": "pareto" if self.is_multiobjective_enabled() else "scalar",
             "pareto_objectives": list(self.pareto_objectives),
             "higher_is_better": dict(self.higher_is_better),

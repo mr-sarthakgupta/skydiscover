@@ -493,6 +493,35 @@ class TestAdaEvolveMultiobjectivePrompts:
         assert "COMBINED_SCORE" in prompt["user"]
         assert "Pareto" not in prompt["user"]
 
+    def test_iteration_state_included_in_prompt(self):
+        builder = self._scalar_builder()
+        current = _make_program("parent", combined_score=0.5)
+
+        prompt = builder.build_prompt(
+            current,
+            {
+                "program_metrics": current.metrics,
+                "iteration_state": {
+                    "current_iteration": 4,
+                    "start_iteration": 0,
+                    "max_iterations": 10,
+                    "total_iterations": 10,
+                    "remaining_iterations": 5,
+                    "visible_run_history_dir": "reference/current_adaevolve_run",
+                    "visible_iteration_stats": (
+                        "reference/current_adaevolve_run/adaevolve_iteration_stats.jsonl"
+                    ),
+                    "visible_checkpoints_dir": "reference/current_adaevolve_run/checkpoints",
+                    "visible_agentic_traces_glob": "reference/agentic_trace_*.json",
+                },
+            },
+        )
+
+        assert "Current iteration: 4 of 9" in prompt["user"]
+        assert "5 iterations remaining" in prompt["user"]
+        assert "reference/current_adaevolve_run/adaevolve_iteration_stats.jsonl" in prompt["user"]
+        assert "reference/agentic_trace_*.json" in prompt["user"]
+
     def test_paradigm_generator_mentions_objectives(self):
         generator = ParadigmGenerator(
             llm_pool=None,
@@ -688,6 +717,21 @@ class TestComprehensiveStats:
         assert global_stats["optimization_mode"] == "scalar"
         assert global_stats["pareto_objectives"] == []
         assert global_stats["global_pareto_front_size"] == 0
+
+    def test_current_iteration_best_score_included(self):
+        db = _scalar_db()
+        db.add(_make_program("old_best", combined_score=0.9), iteration=0, target_island=0)
+        db.add(_make_program("iter_worse", combined_score=0.3), iteration=1, target_island=0)
+        db.add(_make_program("iter_best", combined_score=0.7), iteration=1, target_island=0)
+
+        stats = db.get_comprehensive_iteration_stats(iteration=1)
+        global_stats = stats["global"]
+
+        assert global_stats["global_best_score"] == 0.9
+        assert global_stats["global_best_program_id"] == "old_best"
+        assert global_stats["current_iteration_best_score"] == 0.7
+        assert global_stats["current_iteration_best_program_id"] == "iter_best"
+        assert global_stats["current_iteration_program_count"] == 2
 
 
 # =========================================================================

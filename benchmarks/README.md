@@ -16,6 +16,7 @@ uv sync --extra math                # math benchmarks
 uv sync --extra adrs                # ADRS benchmarks
 uv sync --extra frontier-cs         # frontier-cs-eval benchmark
 uv sync --extra prompt-optimization # HotPotQA prompt benchmark
+uv sync --extra pysr-symbolic       # PySR symbolic regression benchmarks
 ```
 
 If a benchmark directory has `requirements.txt`, also run:
@@ -54,6 +55,7 @@ uv run skydiscover-run benchmarks/math/circle_packing/initial_program.py \
 | [`ale_bench/`](ale_bench/) | Algorithms | 10 | Algorithmic contest problems (C++, ALE-Bench) |
 | [`image_gen/`](image_gen/) | Creative | 1 | AI image generation evolution |
 | [`prompt_optimization/`](prompt_optimization/) | Prompts | 1 | Evolve natural-language prompts, not code (HotPotQA) |
+| [`pysr_symbolic/`](pysr_symbolic/) | Symbolic regression | 1 | Evolve PySR harness code for equation discovery (Friedman #1) |
 
 Each benchmark directory has its own README with setup and run instructions.
 

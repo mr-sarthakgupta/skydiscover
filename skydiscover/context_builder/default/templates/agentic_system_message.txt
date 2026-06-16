@@ -37,8 +37,8 @@ Safe mode (default):
   other shell syntax. If you need filtering, write a short Python command that
   prints only the exact bounded information you need.
 
-Unsafe mode (optional):
-- You may set `unsafe: true` to run via the system shell only when the runtime allows it.
+Unsafe mode (optional, only if enabled by the runtime config):
+- If the runtime config enables unsafe commands, you may set `unsafe: true` to run via the system shell.
 - This enables pipes/redirects/compound commands, but is higher risk and should be used sparingly.
 - If unsafe mode is disabled, `unsafe: true` will fail with an error; fall back to safe mode.
 

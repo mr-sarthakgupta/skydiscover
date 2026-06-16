@@ -36,6 +36,11 @@ llm:
   #   - name: "gemini-3-pro-preview"
   # api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
   # api_key: ${GEMINI_API_KEY}
+  # To use AWS Bedrock: install boto3 or `uv sync --extra bedrock`, then set
+  # AWS_BEARER_TOKEN_BEDROCK for a Bedrock API key, or use AWS credentials.
+  # models:
+  #   - name: "bedrock/us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+  # api_base: "bedrock:us-east-1"
 
 # Search configuration
 search:

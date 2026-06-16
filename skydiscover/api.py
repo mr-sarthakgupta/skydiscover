@@ -74,14 +74,15 @@ def run_discovery(
         evaluator: File path or callable (program_path) -> metrics_dict.
         initial_program: File path or inline source code (string / list of lines).
             Optional — when omitted the LLM generates a solution from scratch.
-        model: Model name(s), comma-separated. e.g. "gpt-5" or "gpt-5,gemini/gemini-3-pro".
+        model: Model name(s), comma-separated. e.g. "gpt-5",
+            "gpt-5,gemini/gemini-3-pro", or "bedrock/<model-id>".
         iterations: Max iterations (overrides config).
         search: Algorithm name ("topk", "adaevolve", "evox", "openevolve_native", etc.).
         config: YAML path, Config object, or None for defaults.
         agentic: Enable agentic mode (codebase root derived from initial_program).
         output_dir: Where to write results (temp dir if None).
         system_prompt: Domain-specific context for the LLM.
-        api_base: Base URL for an OpenAI-compatible API.
+        api_base: Base URL for an OpenAI-compatible API, or "bedrock:<region>".
         cleanup: Remove temp files after the run.
 
     Returns:

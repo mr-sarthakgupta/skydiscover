@@ -255,9 +255,11 @@ class Evaluator:
 
         # Stage 1
         try:
+            stage1_start = time.time()
             stage1 = self._normalize_result(
                 await self._run_stage(module.evaluate_stage1, program_path)
             )
+            stage1_elapsed = time.time() - stage1_start
         except asyncio.TimeoutError:
             logger.error(f"Stage 1 timed out ({self.config.timeout}s)")
             return EvaluationResult(
@@ -275,7 +277,21 @@ class Evaluator:
                 },
             )
 
-        if not self._passes_threshold(stage1.metrics, self.config.cascade_thresholds[0]):
+        stage1_score = stage1.metrics.get("combined_score")
+        stage1_threshold = self.config.cascade_thresholds[0]
+        stage1_passed = self._passes_threshold(stage1.metrics, stage1_threshold)
+        stage1.metrics["cascade_stage1_time_seconds"] = stage1_elapsed
+        stage1.metrics["cascade_stage1_threshold"] = stage1_threshold
+        stage1.metrics["cascade_stage1_passed"] = float(stage1_passed)
+        logger.info(
+            "Cascade stage 1 finished in %.2fs: combined_score=%s threshold=%.4f passed=%s",
+            stage1_elapsed,
+            f"{float(stage1_score):.4f}" if isinstance(stage1_score, (int, float)) else "n/a",
+            stage1_threshold,
+            stage1_passed,
+        )
+
+        if not stage1_passed:
             return stage1
 
         if not hasattr(module, "evaluate_stage2"):
@@ -283,9 +299,11 @@ class Evaluator:
 
         # Stage 2
         try:
+            stage2_start = time.time()
             stage2 = self._normalize_result(
                 await self._run_stage(module.evaluate_stage2, program_path)
             )
+            stage2_elapsed = time.time() - stage2_start
         except asyncio.TimeoutError:
             logger.error(f"Stage 2 timed out ({self.config.timeout}s)")
             stage1.metrics["timeout"] = True
@@ -296,12 +314,24 @@ class Evaluator:
             stage1.artifacts.update({"failure_stage": "stage2", "stage2_stderr": str(e)})
             return stage1
 
+        stage2_score = stage2.metrics.get("combined_score")
+        logger.info(
+            "Cascade stage 2 finished in %.2fs: combined_score=%s",
+            stage2_elapsed,
+            f"{float(stage2_score):.4f}" if isinstance(stage2_score, (int, float)) else "n/a",
+        )
+
         # Merge stages
         merged_metrics = {
             k: float(v)
             for k, v in {**stage1.metrics, **stage2.metrics}.items()
             if isinstance(v, (int, float)) and k != "error"
         }
+        merged_metrics["cascade_stage1_time_seconds"] = stage1_elapsed
+        merged_metrics["cascade_stage2_time_seconds"] = stage2_elapsed
+        merged_metrics["cascade_total_time_seconds"] = stage1_elapsed + stage2_elapsed
+        if isinstance(stage1_score, (int, float)):
+            merged_metrics["cascade_stage1_combined_score"] = float(stage1_score)
         return EvaluationResult(
             metrics=merged_metrics,
             artifacts={**stage1.artifacts, **stage2.artifacts},

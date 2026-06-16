@@ -1,4 +1,4 @@
-"""Agentic code generator -- multi-turn tool-calling loop with codebase and research tools."""
+"""Agentic code generator -- multi-turn tool-calling loop with read_file and search."""
 
 import asyncio
 import concurrent.futures
@@ -8,7 +8,6 @@ import logging
 import os
 import re
 import time
-from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -20,12 +19,17 @@ from skydiscover.llm.responses_utils import (
 from skydiscover.utils.code_utils import build_repo_map
 
 logger = logging.getLogger(__name__)
+_agentic_log = logging.getLogger("skydiscover.agentic_trace")
+EXTERNAL_RESEARCH_TOOLS = {"web_search", "research_papers", "hf_papers", "fetch_webpage"}
 
-TOOL_SCHEMAS = json.loads(
-    resources.files("skydiscover.llm.tool_schemas")
-    .joinpath("agentic_tools.json")
-    .read_text(encoding="utf-8")
-)
+_TOOL_SCHEMAS_PATH = Path(__file__).parent / "tool_schemas" / "agentic_tools.json"
+with open(_TOOL_SCHEMAS_PATH, "r") as _f:
+    TOOL_SCHEMAS = json.load(_f)
+AVAILABLE_TOOL_NAMES = [
+    schema.get("function", {}).get("name", "")
+    for schema in TOOL_SCHEMAS
+    if schema.get("function", {}).get("name")
+]
 
 # Responses API uses a flattened tool format (name/description/parameters at top level)
 TOOL_SCHEMAS_RESPONSES = [
@@ -53,24 +57,28 @@ class AgenticGenerator:
     """
     V0 [simple version]: Multi-turn tool-calling agent that explores a codebase before generating code.
 
-    Tools: read_file, search, web_search, research_papers, fetch_webpage, run_command.
-    When it stops calling tools, its text output
+    Tools: read_file, search. When it stops calling tools, its text output
     is the final answer. Returns None if no output is produced (caller falls
     back to direct generation).
     """
 
-    def __init__(self, llm_pool, config):
+    def __init__(self, llm_pool, config, trace_dir: Optional[str] = None):
         self.llm_pool = llm_pool
         self.config = config
+        self.trace_dir = trace_dir
 
     async def generate(self, system_message: str, user_message: str) -> Optional[str]:
         """Run the agent loop. Returns generated text, or None on failure."""
         cfg = self.config
         files_read: set = set()
         conversation: List[Dict[str, Any]] = []
+        trace_log: List[Dict[str, Any]] = []
         t0 = time.time()
+        external_research_required = _requires_external_research(system_message)
+        external_research_nudge_sent = False
 
         sys_prompt = f"{system_message}\n\n{_AGENTIC_SYSTEM_PROMPT}"
+        logger.info("Agentic tools available: %s", ", ".join(AVAILABLE_TOOL_NAMES))
         repo_map = build_repo_map(
             cfg.codebase_root,
             max_depth=cfg.repo_map_max_depth,
@@ -87,6 +95,16 @@ class AgenticGenerator:
             if time.time() - t0 > cfg.overall_timeout:
                 logger.warning("Agent timed out at step %d", step)
                 break
+
+            remaining = cfg.max_steps - step - 1
+            if step > 0:
+                elapsed = time.time() - t0
+                time_left = max(0, cfg.overall_timeout - elapsed)
+                step_note = _build_step_note(step, cfg.max_steps, remaining, time_left)
+                if conversation and conversation[-1].get("role") == "user":
+                    conversation[-1]["content"] += f"\n\n{step_note}"
+                else:
+                    conversation.append({"role": "user", "content": step_note})
 
             if _context_chars(sys_prompt, conversation) > cfg.max_context_chars:
                 conversation.append(
@@ -120,9 +138,37 @@ class AgenticGenerator:
 
             if not tool_calls:
                 if text_content:
+                    external_research_used = any(
+                        entry.get("tool") in EXTERNAL_RESEARCH_TOOLS for entry in trace_log
+                    )
+                    if (
+                        external_research_required
+                        and not external_research_used
+                        and not external_research_nudge_sent
+                        and remaining > 0
+                    ):
+                        external_research_nudge_sent = True
+                        logger.info(
+                            "Agent attempted final response before external research; "
+                            "requesting one targeted web_search or research_papers call."
+                        )
+                        conversation.append(
+                            {
+                                "role": "user",
+                                "content": (
+                                    "Before producing the final program for this scientific "
+                                    "discovery task, make one targeted external research call "
+                                    "using `web_search` or `research_papers`, unless the tool "
+                                    "itself fails. Use the result to justify the next symbolic "
+                                    "structure, then output the complete improved program."
+                                ),
+                            }
+                        )
+                        continue
                     logger.info(
                         "Agent produced text at step %d (%d files read)", step, len(files_read)
                     )
+                    self._save_trace(trace_log, conversation, sys_prompt)
                     return text_content
                 conversation.append(
                     {
@@ -155,26 +201,78 @@ class AgenticGenerator:
                 )
 
                 result = await self._run_tool(name, args, files_read)
+                logger.info("Step %d: tool=%s returned:\n%s", step, name, result.get("content", ""))
                 conversation.append(
                     {"role": "tool", "tool_call_id": tc_id, "content": result["content"]}
                 )
+                trace_log.append({
+                    "step": step, "tool": name, "args": args,
+                    "result_len": len(result.get("content", "")),
+                })
 
+        self._save_trace(trace_log, conversation, sys_prompt)
         logger.warning("Agent loop ended without producing code")
         return None
+
+    def _save_trace(
+        self, trace_log: list, conversation: list, system_prompt: str
+    ) -> None:
+        """Persist the agentic trace to the run reference dir and codebase reference dir."""
+        try:
+            ts = time.strftime("%Y%m%d_%H%M%S")
+            serialized_conversation = _serialize_conversation(conversation)
+            payload = {
+                "timestamp": ts,
+                "available_tools": AVAILABLE_TOOL_NAMES,
+                "external_research_tool_names": sorted(EXTERNAL_RESEARCH_TOOLS),
+                "external_research_tools_used": any(
+                    entry.get("tool") in EXTERNAL_RESEARCH_TOOLS for entry in trace_log
+                ),
+                "tool_call_count": len(trace_log),
+                "tool_calls": trace_log,
+                "system_prompt": _serialize_message_content(system_prompt),
+                "conversation": serialized_conversation,
+                "model_inputs": _build_model_inputs(system_prompt, conversation),
+            }
+            saved_paths = []
+
+            candidate_dirs = []
+            if self.trace_dir:
+                candidate_dirs.append(self.trace_dir)
+            root = self.config.codebase_root
+            if root:
+                candidate_dirs.append(os.path.join(root, "reference"))
+
+            for ref_dir in dict.fromkeys(candidate_dirs):
+                os.makedirs(ref_dir, exist_ok=True)
+                path = os.path.join(ref_dir, f"agentic_trace_{ts}.json")
+                with open(path, "w") as f:
+                    json.dump(payload, f, indent=2, default=str)
+                saved_paths.append(path)
+
+            if saved_paths:
+                _agentic_log.info("Agentic trace saved to %s", ", ".join(saved_paths))
+        except Exception as e:
+            logger.debug("Failed to save agentic trace: %s", e)
 
     async def _call_llm(
         self, system_message: str, conversation: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Call a sampled LLM with tool schemas.
 
-        Tries Chat Completions first; falls back to Responses API if the
-        deployment does not support Chat Completions (common on Azure).
+        Routes to Bedrock Converse API for BedrockLLM, otherwise uses
+        Chat Completions with Responses API fallback.
         """
         model = self.llm_pool.models[
             self.llm_pool.random_state.choices(
                 range(len(self.llm_pool.models)), weights=self.llm_pool.weights, k=1
             )[0]
         ]
+
+        from skydiscover.llm.bedrock import BedrockLLM
+
+        if isinstance(model, BedrockLLM):
+            return await self._call_llm_bedrock(model, system_message, conversation)
 
         if not hasattr(model, "client"):
             raise RuntimeError(
@@ -207,6 +305,9 @@ class AgenticGenerator:
             if model.max_tokens is not None:
                 params["max_tokens"] = model.max_tokens
 
+        from skydiscover.llm.cost_tracker import global_cost_tracker
+
+        global_cost_tracker.check_budget()
         loop = asyncio.get_running_loop()
         try:
             resp = await loop.run_in_executor(
@@ -219,6 +320,7 @@ class AgenticGenerator:
             model._use_responses_api = True
             return await self._call_llm_responses(model, system_message, conversation)
 
+        _record_openai_chat_usage(resp.usage, model.model)
         msg = resp.choices[0].message
         out: Dict[str, Any] = {"role": "assistant", "content": msg.content or ""}
         if msg.tool_calls:
@@ -261,16 +363,101 @@ class AgenticGenerator:
             if model.max_tokens is not None:
                 resp_params["max_output_tokens"] = model.max_tokens
 
+        from skydiscover.llm.cost_tracker import global_cost_tracker
+
+        global_cost_tracker.check_budget()
         loop = asyncio.get_running_loop()
         resp = await loop.run_in_executor(
             None, lambda: model.client.responses.create(**resp_params)
         )
 
+        _record_responses_api_usage(resp, model.model)
         text, _, tool_calls = extract_responses_output(resp)
         out: Dict[str, Any] = {"role": "assistant", "content": text}
         if tool_calls:
             out["tool_calls"] = tool_calls
         return out
+
+    # ------------------------------------------------------------------
+    # Bedrock Converse API (tool use)
+    # ------------------------------------------------------------------
+
+    async def _call_llm_bedrock(
+        self,
+        model,
+        system_message: str,
+        conversation: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Call Bedrock Converse API with native tool use support and retries."""
+        from skydiscover.llm.cost_tracker import global_cost_tracker
+
+        global_cost_tracker.check_budget()
+
+        bedrock_messages = _conv_to_bedrock(conversation)
+        tool_config = _bedrock_tool_config()
+        cache_point = _bedrock_prompt_cache_point()
+        if cache_point:
+            tool_config["tools"].append(cache_point)
+            _add_bedrock_conversation_cache_point(bedrock_messages, cache_point)
+
+        params: Dict[str, Any] = {
+            "modelId": model.model,
+            "messages": bedrock_messages,
+            "system": (
+                [{"text": system_message}, cache_point]
+                if cache_point
+                else [{"text": system_message}]
+            ),
+            "toolConfig": tool_config,
+        }
+
+        inference_config: Dict[str, Any] = {}
+        if model.max_tokens:
+            inference_config["maxTokens"] = int(model.max_tokens)
+        if model.temperature is not None:
+            inference_config["temperature"] = float(model.temperature)
+        if inference_config:
+            params["inferenceConfig"] = inference_config
+
+        retries, retry_delay, timeout = model._resolve_retry_options()
+
+        for attempt in range(retries + 1):
+            try:
+                loop = asyncio.get_running_loop()
+                response = await asyncio.wait_for(
+                    loop.run_in_executor(None, lambda: model.client.converse(**params)),
+                    timeout=timeout,
+                )
+                break
+            except asyncio.TimeoutError:
+                if attempt < retries:
+                    logger.warning(
+                        "Bedrock agentic timeout attempt %d/%d, retrying...",
+                        attempt + 1, retries + 1,
+                    )
+                    await asyncio.sleep(retry_delay)
+                else:
+                    raise
+            except Exception as exc:
+                if attempt < retries:
+                    logger.warning(
+                        "Bedrock agentic error attempt %d/%d: %s, retrying...",
+                        attempt + 1, retries + 1, exc,
+                    )
+                    await asyncio.sleep(retry_delay)
+                else:
+                    raise
+
+        usage = response.get("usage", {})
+        global_cost_tracker.record_usage(
+            input_tokens=usage.get("inputTokens", 0),
+            output_tokens=usage.get("outputTokens", 0),
+            cache_read_tokens=usage.get("cacheReadInputTokens", 0),
+            cache_write_tokens=usage.get("cacheWriteInputTokens", 0),
+            model=model.model,
+        )
+
+        return _parse_bedrock_response(response)
 
     # ------------------------------------------------------------------
     # Tools
@@ -284,44 +471,33 @@ class AgenticGenerator:
                 return self._tool_search(args)
             elif name == "web_search":
                 from skydiscover.llm.tools.web_search_tool import web_search_handler
-
                 output, success = await web_search_handler(args)
                 return {"content": output, "_error": not success}
             elif name in ("research_papers", "hf_papers"):
                 from skydiscover.llm.tools.papers_tool import research_papers_handler
-
                 output, success = await research_papers_handler(args)
                 return {"content": output, "_error": not success}
             elif name == "fetch_webpage":
                 from skydiscover.llm.tools.fetch_webpage_tool import fetch_webpage_handler
-
                 output, success = await fetch_webpage_handler(
                     args, codebase_root=self.config.codebase_root
                 )
                 return {"content": output, "_error": not success}
             elif name == "run_command":
                 from skydiscover.llm.tools.run_command_tool import run_command_handler
-
-                if getattr(self.config, "run_command_enabled", True) is False:
-                    return _err(
-                        "run_command is disabled (agentic.run_command_enabled=false)."
-                    )
+                if not getattr(self.config, "run_command_enabled", True):
+                    return _err("run_command is disabled by configuration (agentic.run_command_enabled=false).")
                 output, success = await run_command_handler(
                     args,
                     codebase_root=self.config.codebase_root,
-                    run_command_default_timeout=getattr(
-                        self.config, "run_command_default_timeout", 30
-                    ),
+                    run_command_default_timeout=getattr(self.config, "run_command_default_timeout", 30),
                     run_command_max_timeout=getattr(self.config, "run_command_max_timeout", 120),
-                    run_command_max_output_chars=getattr(
-                        self.config, "run_command_max_output_chars", 20_000
-                    ),
+                    run_command_max_output_chars=getattr(self.config, "run_command_max_output_chars", 20_000),
                     allow_unsafe_commands=getattr(self.config, "allow_unsafe_commands", False),
                 )
                 return {"content": output, "_error": not success}
             return _err(
-                f"Unknown tool '{name}'. Available: read_file, search, web_search, "
-                "research_papers, fetch_webpage, run_command."
+                f"Unknown tool '{name}'. Available: read_file, search, web_search, research_papers, fetch_webpage, run_command."
             )
         except Exception as e:
             return _err(f"Tool '{name}' error: {e}")
@@ -366,6 +542,8 @@ class AgenticGenerator:
 
         files_read.add(resolved)
         rel = os.path.relpath(resolved, root)
+        if rel.startswith("reference" + os.sep) or rel.startswith("reference/"):
+            logger.info("read_file: loaded reference file %s (%d lines)", rel, total)
         numbered = [
             f"{i:4d} | {ln.rstrip(chr(10))}"
             for i, ln in enumerate(content.splitlines(True), start=start + 1)
@@ -440,6 +618,81 @@ class AgenticGenerator:
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------
+
+
+def _record_openai_chat_usage(usage, model_name: str) -> None:
+    """Record token usage from an OpenAI Chat Completions response."""
+    if usage is None:
+        return
+    from skydiscover.llm.cost_tracker import global_cost_tracker
+
+    prompt_tokens = getattr(usage, "prompt_tokens", 0) or 0
+    completion_tokens = getattr(usage, "completion_tokens", 0) or 0
+    cache_read = 0
+    details = getattr(usage, "prompt_tokens_details", None)
+    if details:
+        cache_read = getattr(details, "cached_tokens", 0) or 0
+    global_cost_tracker.record_usage(
+        input_tokens=prompt_tokens,
+        output_tokens=completion_tokens,
+        cache_read_tokens=cache_read,
+        model=model_name,
+    )
+
+
+def _record_responses_api_usage(response, model_name: str) -> None:
+    """Record token usage from an OpenAI Responses API response."""
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return
+    from skydiscover.llm.cost_tracker import global_cost_tracker
+
+    input_tokens = getattr(usage, "input_tokens", 0) or 0
+    output_tokens = getattr(usage, "output_tokens", 0) or 0
+    cache_read = 0
+    details = getattr(usage, "input_tokens_details", None)
+    if details:
+        cache_read = getattr(details, "cached_tokens", 0) or 0
+    global_cost_tracker.record_usage(
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cache_read_tokens=cache_read,
+        model=model_name,
+    )
+
+
+def _build_step_note(step: int, max_steps: int, remaining: int, time_left: float) -> str:
+    """Build a concise step-counter message with progressive urgency."""
+    time_str = f"{time_left:.0f}s" if time_left < 600 else f"{time_left / 60:.0f}min"
+    if remaining <= 2:
+        return (
+            f"[Step {step + 1}/{max_steps} | {remaining} turns left | {time_str} remaining] "
+            f"URGENT: You MUST output your final improved program NOW. "
+            f"Do NOT call any more tools. Respond with your complete solution code."
+        )
+    if remaining <= 5:
+        return (
+            f"[Step {step + 1}/{max_steps} | {remaining} turns left | {time_str} remaining] "
+            f"Time is running out. Finish your exploration and output your improved program."
+        )
+    if remaining <= 15:
+        return (
+            f"[Step {step + 1}/{max_steps} | {remaining} turns left | {time_str} remaining] "
+            f"Start wrapping up — you must output a complete improved program before your turns run out."
+        )
+    return f"[Step {step + 1}/{max_steps} | {remaining} turns left | {time_str} remaining]"
+
+
+def _requires_external_research(system_message: str) -> bool:
+    """Detect benchmark prompts that explicitly ask for outside research."""
+    lowered = system_message.lower()
+    markers = (
+        "internet and paper tools are available and valuable",
+        "perform targeted research",
+        "governing relationships",
+        "external sources before proposing",
+    )
+    return any(marker in lowered for marker in markers)
 
 
 def _err(msg: str) -> Dict[str, Any]:
@@ -520,6 +773,177 @@ def _validate_path(
         return False, "", f"Extension '{ext}' not allowed."
 
     return True, resolved, ""
+
+
+def _serialize_message_content(content: str) -> str:
+    """Truncate large message bodies for JSON-safe trace persistence."""
+    if len(content) > 2000:
+        return content[:1000] + f"\n...[{len(content)} chars total]...\n" + content[-500:]
+    return content
+
+
+def _build_model_inputs(
+    system_prompt: str, conversation: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Build the full chat payload sent to the model (system + conversation)."""
+    return [
+        {"role": "system", "content": _serialize_message_content(system_prompt)},
+        *_serialize_conversation(conversation),
+    ]
+
+
+def _serialize_conversation(conversation: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Produce a JSON-safe copy of the conversation (truncate large tool results)."""
+    out: List[Dict[str, Any]] = []
+    for msg in conversation:
+        entry: Dict[str, Any] = {"role": msg.get("role", "")}
+        entry["content"] = _serialize_message_content(msg.get("content", ""))
+        if "tool_calls" in msg:
+            entry["tool_calls"] = msg["tool_calls"]
+        if "tool_call_id" in msg:
+            entry["tool_call_id"] = msg["tool_call_id"]
+        out.append(entry)
+    return out
+
+
+# ------------------------------------------------------------------
+# Bedrock Converse format converters
+# ------------------------------------------------------------------
+
+
+def _bedrock_tool_config() -> Dict[str, Any]:
+    """Convert OpenAI tool schemas to Bedrock toolConfig format."""
+    tools = []
+    for schema in TOOL_SCHEMAS:
+        fn = schema["function"]
+        params = dict(fn["parameters"])
+        params.pop("additionalProperties", None)
+        tools.append({
+            "toolSpec": {
+                "name": fn["name"],
+                "description": fn["description"],
+                "inputSchema": {"json": params},
+            }
+        })
+    return {"tools": tools}
+
+
+def _bedrock_prompt_cache_point() -> Optional[Dict[str, Any]]:
+    """Return a Bedrock Converse cache checkpoint, unless disabled by env."""
+    raw = os.environ.get("BEDROCK_PROMPT_CACHE_TTL", "1h").strip()
+    if raw.lower() in {"", "0", "false", "off", "none"}:
+        return None
+
+    cache_point: Dict[str, Any] = {"type": "default"}
+    if raw:
+        cache_point["ttl"] = raw
+    return {"cachePoint": cache_point}
+
+
+def _add_bedrock_conversation_cache_point(
+    bedrock_messages: List[Dict[str, Any]],
+    cache_point: Dict[str, Any],
+) -> None:
+    """Mark the current conversation prefix for reuse by later agentic steps."""
+    if os.environ.get("BEDROCK_CACHE_CONVERSATION", "1").lower() in {
+        "0",
+        "false",
+        "off",
+        "none",
+    }:
+        return
+    if not bedrock_messages:
+        return
+
+    content = bedrock_messages[-1].setdefault("content", [])
+    if isinstance(content, list):
+        content.append(cache_point)
+
+
+def _conv_to_bedrock(conversation: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Convert OpenAI-format conversation to Bedrock Converse messages.
+
+    Handles: user text, assistant text+tool_calls, and consecutive tool
+    result messages (grouped into a single user message as toolResult blocks).
+    """
+    bedrock_msgs: List[Dict[str, Any]] = []
+    i = 0
+    while i < len(conversation):
+        msg = conversation[i]
+        role = msg.get("role")
+
+        if role == "user":
+            text = msg.get("content", "") or " "
+            bedrock_msgs.append({"role": "user", "content": [{"text": text}]})
+            i += 1
+
+        elif role == "assistant":
+            content: List[Dict[str, Any]] = []
+            text = msg.get("content", "")
+            if text:
+                content.append({"text": text})
+            for tc in msg.get("tool_calls", []):
+                fn = tc.get("function", {})
+                try:
+                    tool_input = json.loads(fn.get("arguments", "{}"))
+                except (json.JSONDecodeError, TypeError):
+                    tool_input = {}
+                content.append({
+                    "toolUse": {
+                        "toolUseId": tc.get("id", f"tc_{i}"),
+                        "name": fn.get("name", ""),
+                        "input": tool_input,
+                    }
+                })
+            bedrock_msgs.append({"role": "assistant", "content": content or [{"text": " "}]})
+            i += 1
+
+        elif role == "tool":
+            tool_results: List[Dict[str, Any]] = []
+            while i < len(conversation) and conversation[i].get("role") == "tool":
+                tr = conversation[i]
+                tool_results.append({
+                    "toolResult": {
+                        "toolUseId": tr.get("tool_call_id", f"tc_{i}"),
+                        "content": [{"text": tr.get("content", "")}],
+                        "status": "success",
+                    }
+                })
+                i += 1
+            bedrock_msgs.append({"role": "user", "content": tool_results})
+
+        else:
+            i += 1
+
+    return bedrock_msgs
+
+
+def _parse_bedrock_response(response: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert Bedrock Converse response to internal OpenAI-like format."""
+    output = response.get("output", {}).get("message", {})
+    content_blocks = output.get("content", [])
+
+    text_parts: List[str] = []
+    tool_calls: List[Dict[str, Any]] = []
+
+    for block in content_blocks:
+        if "text" in block:
+            text_parts.append(block["text"])
+        elif "toolUse" in block:
+            tu = block["toolUse"]
+            tool_calls.append({
+                "id": tu.get("toolUseId", ""),
+                "type": "function",
+                "function": {
+                    "name": tu.get("name", ""),
+                    "arguments": json.dumps(tu.get("input", {})),
+                },
+            })
+
+    result: Dict[str, Any] = {"role": "assistant", "content": "\n".join(text_parts)}
+    if tool_calls:
+        result["tool_calls"] = tool_calls
+    return result
 
 
 _NESTED_QUANTIFIER_RE = re.compile(r"\([^)]*[+*][^)]*\)\s*[+*?]|\([^)]*[+*][^)]*\)\s*\{")

@@ -96,7 +96,16 @@ class DiscoveryController:
         if self.config.agentic.enabled:
             from skydiscover.llm.agentic_generator import AgenticGenerator
 
-            self.agentic_generator = AgenticGenerator(self.llms, self.config.agentic)
+            trace_dir = (
+                os.path.join(self.output_dir, "reference")
+                if self.output_dir
+                else None
+            )
+            self.agentic_generator = AgenticGenerator(
+                self.llms,
+                self.config.agentic,
+                trace_dir=trace_dir,
+            )
             logger.info(f"Agentic mode enabled (codebase: {self.config.agentic.codebase_root})")
 
         self.num_context_programs = controller_input.config.search.num_context_programs
@@ -621,7 +630,6 @@ class DiscoveryController:
                         else None
                     )
 
-                child_artifacts = child_eval_result.artifacts or {}
                 if (
                     child_metrics.get("validity") in (0, -1)
                     or (
@@ -630,7 +638,7 @@ class DiscoveryController:
                     )
                     or (
                         child_metrics.get("combined_score") == 0
-                        and (child_metrics.get("error") is not None or "error" in child_artifacts)
+                        and child_metrics.get("error") is not None
                     )
                 ):
                     error_msg = (
@@ -639,7 +647,6 @@ class DiscoveryController:
                             if isinstance(child_metrics.get("error"), str)
                             else None
                         )
-                        or child_artifacts.get("error")
                         or child_metrics.get("error_message")
                         or "Evaluation failed (validity=0)"
                     )

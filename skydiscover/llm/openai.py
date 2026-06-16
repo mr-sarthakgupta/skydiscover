@@ -158,85 +158,36 @@ class OpenAILLM(LLMInterface):
             if reasoning_effort is not None:
                 params["reasoning_effort"] = reasoning_effort
 
-        # Add response_format if requested (e.g. {"type": "json_object"})
-        response_format = kwargs.get("response_format")
-        if response_format is not None:
-            params["response_format"] = response_format
-
         retries, retry_delay, timeout = self._resolve_retry_options(**kwargs)
-        attempt = 0
 
-        while attempt <= retries:
+        for attempt in range(retries + 1):
             try:
                 return await asyncio.wait_for(self._call_api(params), timeout=timeout)
             except asyncio.TimeoutError:
                 if attempt < retries:
                     logger.warning(f"Timeout attempt {attempt + 1}/{retries + 1}, retrying...")
-                    attempt += 1
                     await asyncio.sleep(retry_delay)
                 else:
                     raise
             except Exception as e:
-                downgrade_action = self._maybe_downgrade_response_format(params, e)
-                if downgrade_action is not None:
-                    logger.warning(
-                        f"response_format downgrade applied ({downgrade_action}) after API error: {e}"
-                    )
-                    continue
                 if attempt < retries:
                     logger.warning(f"Error attempt {attempt + 1}/{retries + 1}: {e}, retrying...")
-                    attempt += 1
                     await asyncio.sleep(retry_delay)
                 else:
                     raise
 
-    def _error_mentions_response_format(self, error: Exception) -> bool:
-        error_text_parts = [str(error)]
-
-        body = getattr(error, "body", None)
-        if body is not None:
-            error_text_parts.append(str(body))
-
-        response = getattr(error, "response", None)
-        if response is not None:
-            response_text = getattr(response, "text", None)
-            if response_text:
-                error_text_parts.append(str(response_text))
-
-        error_text = " ".join(error_text_parts).lower()
-        return "response_format" in error_text or "response format" in error_text
-
-    def _maybe_downgrade_response_format(
-        self, params: Dict[str, Any], error: Exception
-    ) -> Optional[str]:
-        if not self._error_mentions_response_format(error):
-            return None
-
-        response_format = params.get("response_format")
-        if not isinstance(response_format, dict):
-            return None
-
-        format_type = response_format.get("type")
-        if format_type == "json_schema":
-            params["response_format"] = {"type": "json_object"}
-            return "json_schema->json_object"
-
-        if format_type == "json_object":
-            params.pop("response_format", None)
-            return "json_object->none"
-
-        return None
-
     async def _call_api(self, params: Dict[str, Any]) -> str:
+        from skydiscover.llm.cost_tracker import global_cost_tracker
+
+        global_cost_tracker.check_budget()
         loop = asyncio.get_running_loop()
         try:
             response = await loop.run_in_executor(
                 None, lambda: self.client.chat.completions.create(**params)
             )
+            self._record_openai_usage(response.usage)
             return response.choices[0].message.content
         except (openai.BadRequestError, openai.APIStatusError) as exc:
-            # Some Azure deployments only expose the Responses API.
-            # Fall back transparently when Chat Completions is unsupported.
             if "unsupported" not in str(exc).lower() and "not found" not in str(exc).lower():
                 raise
             logger.info("Chat Completions unsupported; falling back to Responses API")
@@ -245,8 +196,11 @@ class OpenAILLM(LLMInterface):
     async def _call_api_via_responses(self, params: Dict[str, Any]) -> str:
         """Translate a Chat-Completions-style *params* dict into a Responses API
         call and return the assistant text."""
+        from skydiscover.llm.cost_tracker import global_cost_tracker
+
+        global_cost_tracker.check_budget()
         messages = params.get("messages", [])
-        input_items = self._convert_to_responses_input(
+        input_items = convert_messages_to_responses_input(
             [m for m in messages if m.get("role") != "system"]
         )
         system_msg = next((m["content"] for m in messages if m.get("role") == "system"), None)
@@ -269,8 +223,48 @@ class OpenAILLM(LLMInterface):
         response = await loop.run_in_executor(
             None, lambda: self.client.responses.create(**resp_params)
         )
-        text, _ = self._extract_responses_output(response)
+        self._record_responses_usage(response)
+        text, _, _ = extract_responses_output(response)
         return text or ""
+
+    def _record_openai_usage(self, usage) -> None:
+        """Record token usage from a Chat Completions response."""
+        if usage is None:
+            return
+        from skydiscover.llm.cost_tracker import global_cost_tracker
+
+        prompt_tokens = getattr(usage, "prompt_tokens", 0) or 0
+        completion_tokens = getattr(usage, "completion_tokens", 0) or 0
+        cache_read = 0
+        details = getattr(usage, "prompt_tokens_details", None)
+        if details:
+            cache_read = getattr(details, "cached_tokens", 0) or 0
+        global_cost_tracker.record_usage(
+            input_tokens=prompt_tokens,
+            output_tokens=completion_tokens,
+            cache_read_tokens=cache_read,
+            model=self.model,
+        )
+
+    def _record_responses_usage(self, response) -> None:
+        """Record token usage from a Responses API response."""
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return
+        from skydiscover.llm.cost_tracker import global_cost_tracker
+
+        input_tokens = getattr(usage, "input_tokens", 0) or 0
+        output_tokens = getattr(usage, "output_tokens", 0) or 0
+        cache_read = 0
+        details = getattr(usage, "input_tokens_details", None)
+        if details:
+            cache_read = getattr(details, "cached_tokens", 0) or 0
+        global_cost_tracker.record_usage(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cache_read_tokens=cache_read,
+            model=self.model,
+        )
 
     def _resolve_retry_options(self, **kwargs) -> Tuple[int, int, int]:
         """Resolve retry/timeout options from kwargs, falling back to instance defaults."""
