@@ -1,7 +1,6 @@
 <h1 align="center">
-  <img src="assets/logo_vector.png" height="80" alt="SkyDiscover logo" style="vertical-align: middle;">&nbsp;
-
-  <b>SkyDiscover</b>
+  
+  <b>LLM Agent + Genetic Search for Binder Design</b>
 </h1>
 
 
@@ -37,9 +36,7 @@ SkyDiscover's core adaptive algorithms are:
 - **[AdaEvolve](https://arxiv.org/abs/2602.20133)**, which dynamically adjusts its optimization behavior based on observed progress.
 - **[EvoX](https://arxiv.org/abs/2602.23413)**, which dynamically evolves the optimization (evolution) strategy itself using LLMs on the fly.
 
-SkyDiscover also supports OpenEvolve, ShinkaEvolve, GEPA, and Harbor-format
-benchmarks for broader algorithmic discovery experiments.
-> 🚧 This project is under active development.
+<img src="assets/logo_vector.png" height="80" alt="SkyDiscover logo" style="vertical-align: middle;">&nbsp;
 
 ---
 
