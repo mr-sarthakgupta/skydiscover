@@ -1,0 +1,360 @@
+{
+  "num_islands": 2,
+  "current_island": 1,
+  "iteration_count": 23,
+  "global_best_score": 0.9129348642354069,
+  "decay": 0.9,
+  "intensity_min": 0.15,
+  "intensity_max": 0.5,
+  "migration_interval": 15,
+  "diversity_strategy_type": "code",
+  "use_unified_archive": true,
+  "use_adaptive_search": true,
+  "use_ucb_selection": true,
+  "fixed_intensity": 0.4,
+  "adapter": {
+    "states": [
+      {
+        "accumulated_signal": 0.05426583981905606,
+        "best_score": 0.90198427859717,
+        "improvement_count": 6,
+        "total_evaluations": 15,
+        "decay": 0.9,
+        "epsilon": 1e-08,
+        "intensity_min": 0.15,
+        "intensity_max": 0.5
+      },
+      {
+        "accumulated_signal": 0.08453979204375031,
+        "best_score": 0.9129348642354069,
+        "improvement_count": 2,
+        "total_evaluations": 14,
+        "decay": 0.9,
+        "epsilon": 1e-08,
+        "intensity_min": 0.15,
+        "intensity_max": 0.5
+      }
+    ],
+    "dimension_visits": [
+      15,
+      14
+    ],
+    "dimension_rewards": [
+      0.32984378744895443,
+      0.11362793962347162
+    ],
+    "decayed_visits": [
+      7.94108867905351,
+      7.7123207545039
+    ],
+    "global_best_score": 0.9129348642354069,
+    "ucb_exploration": 1.41,
+    "min_visits": 3,
+    "decay": 0.9,
+    "epsilon": 1e-08
+  },
+  "island_config_names": [
+    "balanced",
+    "balanced"
+  ],
+  "islands": [
+    [
+      "9c62aa05-6efd-4924-9449-db08b485caf8",
+      "5de7f022-e1a6-430a-943e-03e70505741c",
+      "58bb27a5-2317-47b2-8265-1294f56007f5",
+      "57936152-9422-43c7-a270-0ad0e0560020",
+      "d91eebf4-edbb-4d61-935a-cde9812bcfa3",
+      "1d91dd4e-1488-4ad1-ae51-0b733905535e",
+      "73e221fe-863d-40e0-9444-ec44822dbbdc",
+      "1c1dd22f-d187-43f0-bc0b-fa2134c4ad6a",
+      "9f8d6733-9591-4873-a64b-1e6b4af0499e",
+      "f314e3d3-cb13-4518-a468-96bdf1b63d59",
+      "6ee74c89-73c1-440f-8b72-c743623789ed",
+      "fde87034-4a43-457e-95ed-047f98f3ce64",
+      "8a2c5219-fd8a-4d0d-9355-4cf37900055a",
+      "97c3a8ee-a8ad-4cb2-87f6-89a8d118dc3b",
+      "87cb46b1-4341-4391-b376-4ab8a465bd75",
+      "aa04ff0f-ce19-49a1-8bed-5c13cd0a1953",
+      "35f4160b-3c97-4129-aaa1-c8e373f4a288"
+    ],
+    [
+      "0b894a89-8f48-4ae8-bcf2-fc7352805b0c",
+      "c466b8cc-0147-4116-b2e3-c3099d426cdc",
+      "605a3f97-d1e6-4e07-a0c5-289a11459655",
+      "36eb189c-1a43-472f-98e6-b3c8fc3c1999",
+      "c582d891-27cf-4f06-a89c-74be0cf7f2e4",
+      "9c37ef26-dd60-4f2e-93f5-bec5217e283e",
+      "cd9383e9-35a3-4dc0-a469-adb51c3a4b7e",
+      "bce33e8b-4e6f-43f7-8a34-32d6592fa8fa",
+      "83561fe7-01ac-4aff-8280-f05464f074a1",
+      "e13a7464-3ffc-4bd0-9be0-00df5463a1f6",
+      "48a94a21-cdb9-49cc-9bf4-a36e73d05c43",
+      "ce0443de-d3c3-4af4-99f5-04a67abdf761",
+      "1260937f-9e8d-4719-aa1e-0da01483c826",
+      "96453ae7-345b-4192-9bea-46e37feb55d4",
+      "6ce38339-100d-4771-8c10-948e8d1282ba"
+    ]
+  ],
+  "archive_genealogies": [
+    {
+      "parents": {
+        "9c62aa05-6efd-4924-9449-db08b485caf8": [],
+        "5de7f022-e1a6-430a-943e-03e70505741c": [
+          "9c62aa05-6efd-4924-9449-db08b485caf8"
+        ],
+        "58bb27a5-2317-47b2-8265-1294f56007f5": [
+          "9c62aa05-6efd-4924-9449-db08b485caf8"
+        ],
+        "57936152-9422-43c7-a270-0ad0e0560020": [
+          "5de7f022-e1a6-430a-943e-03e70505741c"
+        ],
+        "d91eebf4-edbb-4d61-935a-cde9812bcfa3": [
+          "57936152-9422-43c7-a270-0ad0e0560020"
+        ],
+        "1d91dd4e-1488-4ad1-ae51-0b733905535e": [
+          "d91eebf4-edbb-4d61-935a-cde9812bcfa3"
+        ],
+        "73e221fe-863d-40e0-9444-ec44822dbbdc": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "1c1dd22f-d187-43f0-bc0b-fa2134c4ad6a": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "9f8d6733-9591-4873-a64b-1e6b4af0499e": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "f314e3d3-cb13-4518-a468-96bdf1b63d59": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "6ee74c89-73c1-440f-8b72-c743623789ed": [
+          "36eb189c-1a43-472f-98e6-b3c8fc3c1999"
+        ],
+        "fde87034-4a43-457e-95ed-047f98f3ce64": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "8a2c5219-fd8a-4d0d-9355-4cf37900055a": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "97c3a8ee-a8ad-4cb2-87f6-89a8d118dc3b": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "87cb46b1-4341-4391-b376-4ab8a465bd75": [
+          "97c3a8ee-a8ad-4cb2-87f6-89a8d118dc3b"
+        ],
+        "aa04ff0f-ce19-49a1-8bed-5c13cd0a1953": [
+          "87cb46b1-4341-4391-b376-4ab8a465bd75"
+        ],
+        "35f4160b-3c97-4129-aaa1-c8e373f4a288": [
+          "f314e3d3-cb13-4518-a468-96bdf1b63d59"
+        ]
+      },
+      "children": {
+        "9c62aa05-6efd-4924-9449-db08b485caf8": [
+          "5de7f022-e1a6-430a-943e-03e70505741c",
+          "58bb27a5-2317-47b2-8265-1294f56007f5"
+        ],
+        "5de7f022-e1a6-430a-943e-03e70505741c": [
+          "57936152-9422-43c7-a270-0ad0e0560020"
+        ],
+        "57936152-9422-43c7-a270-0ad0e0560020": [
+          "d91eebf4-edbb-4d61-935a-cde9812bcfa3"
+        ],
+        "d91eebf4-edbb-4d61-935a-cde9812bcfa3": [
+          "1d91dd4e-1488-4ad1-ae51-0b733905535e"
+        ],
+        "c466b8cc-0147-4116-b2e3-c3099d426cdc": [
+          "73e221fe-863d-40e0-9444-ec44822dbbdc",
+          "1c1dd22f-d187-43f0-bc0b-fa2134c4ad6a",
+          "9f8d6733-9591-4873-a64b-1e6b4af0499e",
+          "f314e3d3-cb13-4518-a468-96bdf1b63d59",
+          "fde87034-4a43-457e-95ed-047f98f3ce64",
+          "8a2c5219-fd8a-4d0d-9355-4cf37900055a",
+          "97c3a8ee-a8ad-4cb2-87f6-89a8d118dc3b"
+        ],
+        "36eb189c-1a43-472f-98e6-b3c8fc3c1999": [
+          "6ee74c89-73c1-440f-8b72-c743623789ed"
+        ],
+        "97c3a8ee-a8ad-4cb2-87f6-89a8d118dc3b": [
+          "87cb46b1-4341-4391-b376-4ab8a465bd75"
+        ],
+        "87cb46b1-4341-4391-b376-4ab8a465bd75": [
+          "aa04ff0f-ce19-49a1-8bed-5c13cd0a1953"
+        ],
+        "f314e3d3-cb13-4518-a468-96bdf1b63d59": [
+          "35f4160b-3c97-4129-aaa1-c8e373f4a288"
+        ]
+      }
+    },
+    {
+      "parents": {
+        "0b894a89-8f48-4ae8-bcf2-fc7352805b0c": [],
+        "c466b8cc-0147-4116-b2e3-c3099d426cdc": [
+          "0b894a89-8f48-4ae8-bcf2-fc7352805b0c"
+        ],
+        "605a3f97-d1e6-4e07-a0c5-289a11459655": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "36eb189c-1a43-472f-98e6-b3c8fc3c1999": [
+          "0b894a89-8f48-4ae8-bcf2-fc7352805b0c"
+        ],
+        "c582d891-27cf-4f06-a89c-74be0cf7f2e4": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "9c37ef26-dd60-4f2e-93f5-bec5217e283e": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "cd9383e9-35a3-4dc0-a469-adb51c3a4b7e": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "bce33e8b-4e6f-43f7-8a34-32d6592fa8fa": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "83561fe7-01ac-4aff-8280-f05464f074a1": [
+          "9f8d6733-9591-4873-a64b-1e6b4af0499e"
+        ],
+        "e13a7464-3ffc-4bd0-9be0-00df5463a1f6": [
+          "d91eebf4-edbb-4d61-935a-cde9812bcfa3"
+        ],
+        "48a94a21-cdb9-49cc-9bf4-a36e73d05c43": [
+          "73e221fe-863d-40e0-9444-ec44822dbbdc"
+        ],
+        "ce0443de-d3c3-4af4-99f5-04a67abdf761": [
+          "57936152-9422-43c7-a270-0ad0e0560020"
+        ],
+        "1260937f-9e8d-4719-aa1e-0da01483c826": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc"
+        ],
+        "96453ae7-345b-4192-9bea-46e37feb55d4": [
+          "87cb46b1-4341-4391-b376-4ab8a465bd75"
+        ],
+        "6ce38339-100d-4771-8c10-948e8d1282ba": [
+          "c582d891-27cf-4f06-a89c-74be0cf7f2e4"
+        ]
+      },
+      "children": {
+        "0b894a89-8f48-4ae8-bcf2-fc7352805b0c": [
+          "c466b8cc-0147-4116-b2e3-c3099d426cdc",
+          "36eb189c-1a43-472f-98e6-b3c8fc3c1999"
+        ],
+        "c466b8cc-0147-4116-b2e3-c3099d426cdc": [
+          "605a3f97-d1e6-4e07-a0c5-289a11459655",
+          "c582d891-27cf-4f06-a89c-74be0cf7f2e4",
+          "9c37ef26-dd60-4f2e-93f5-bec5217e283e",
+          "cd9383e9-35a3-4dc0-a469-adb51c3a4b7e",
+          "bce33e8b-4e6f-43f7-8a34-32d6592fa8fa",
+          "1260937f-9e8d-4719-aa1e-0da01483c826"
+        ],
+        "9f8d6733-9591-4873-a64b-1e6b4af0499e": [
+          "83561fe7-01ac-4aff-8280-f05464f074a1"
+        ],
+        "d91eebf4-edbb-4d61-935a-cde9812bcfa3": [
+          "e13a7464-3ffc-4bd0-9be0-00df5463a1f6"
+        ],
+        "73e221fe-863d-40e0-9444-ec44822dbbdc": [
+          "48a94a21-cdb9-49cc-9bf4-a36e73d05c43"
+        ],
+        "57936152-9422-43c7-a270-0ad0e0560020": [
+          "ce0443de-d3c3-4af4-99f5-04a67abdf761"
+        ],
+        "87cb46b1-4341-4391-b376-4ab8a465bd75": [
+          "96453ae7-345b-4192-9bea-46e37feb55d4"
+        ],
+        "c582d891-27cf-4f06-a89c-74be0cf7f2e4": [
+          "6ce38339-100d-4771-8c10-948e8d1282ba"
+        ]
+      }
+    }
+  ],
+  "use_dynamic_islands": true,
+  "max_islands": 5,
+  "last_spawn_iteration": -30,
+  "use_paradigm_breakthrough": true,
+  "paradigm_tracker": {
+    "window_size": 10,
+    "improvement_threshold": 0.12,
+    "max_paradigm_uses": 2,
+    "max_tried_paradigms": 10,
+    "num_paradigms_to_generate": 3,
+    "improvement_history": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    "active_paradigms": [
+      {
+        "idea": "Expand hotspot coverage to include the dense contact cluster B79-B84 plus B77 and B138, replacing B143 with B138 which has stronger contact signal",
+        "description": "The contact-derived hotspots show a dense cluster: B77, B78, B79, B80, B81, B82, B83, B84. Rather than using B143 (prior art only), replace it with B138 which appears in the contact list. Use 5 hotspots: B77, B80, B82, B84, B138 to cover the full interface patch. This broader epitope coverage should improve total_reward by ensuring the binder engages the entire binding surface. Keep binder length [70, 110] to accommodate the larger interface. Use tan noise for local_latents (smoother than 1/t2, better for multi-residue interfaces). Increase sc_scale_score to 2.0 for stronger guidance. Use seed=42 for new exploration.",
+        "what_to_optimize": "best_total_reward by covering more interface contacts, diversity bonus through broader design space",
+        "cautions": "Stay within 8 hotspot limit; B138 must be in ALLOWED_HOTSPOTS (it is listed in contact candidates); tan noise is safe; binder length range must be <= 120 wide",
+        "approach_type": "hotspot_expansion.contact_cluster"
+      },
+      {
+        "idea": "Use power schedule for bb_ca (p=1.2) with tan noise for both channels, maximizing self-conditioning with sc_scale_score=2.5 and reduced noise scale 0.05",
+        "description": "The current program uses log schedule for bb_ca and 1/t2 for local_latents noise. Switch bb_ca_schedule to power with p=1.2 (nearly uniform, spreading backbone denoising evenly) and use tan noise for both bb_ca and local_latents (tan mode is explicitly listed as safe and provides smooth noise profile). Push sc_scale_score to 2.5 (near maximum of 5.0) for both channels to maximize self-conditioning guidance at the interface. Reduce sc_scale_noise to 0.05 to minimize noise interference with self-conditioning. Keep hotspots B77, B84, B143 but change seed to 99 to explore new trajectories. Binder length [65, 100] stays compact.",
+        "what_to_optimize": "best_total_reward through stronger self-conditioning signal and smoother noise schedules",
+        "cautions": "sc_scale_score max is 5.0; tan noise is explicitly safe per constraints; power schedule p must be 0.05-8.0; very high sc_scale_score could over-constrain sampling",
+        "approach_type": "sampling.self_conditioning_amplification"
+      },
+      {
+        "idea": "Use the 4-hotspot set B77, B82, B84, B138 with beam-search algorithm (n_branch=2, beam_width=2) instead of best-of-n for more directed exploration",
+        "description": "Beam-search explores multiple trajectories simultaneously and selects the best at each step, potentially finding higher-reward designs than best-of-n which just runs independent replicas. Use n_branch=2 and beam_width=2 (within the 24GB GPU cap of 2). Select hotspots B77 (strongest contact 2.73A), B82 (in dense cluster), B84 (hydrophobic core), B138 (contact list, covers different region than B143). Use power schedule p=2.0 for local_latents (concentrate refinement near t=0), log schedule p=1.5 for bb_ca. Keep sc_scale_score=1.8. Binder length [68, 105] slightly adjusted. Seed=7 for reproducibility comparison.",
+        "what_to_optimize": "best_total_reward through beam-search directed sampling, interface coverage with 4 strategic hotspots",
+        "cautions": "beam-search n_branch and beam_width are each capped at 2 for 24GB GPU; beam-search is listed as supported algorithm; B138 must be in allowed hotspots",
+        "approach_type": "search.beam_search_algorithm"
+      }
+    ],
+    "paradigm_usage_counts": {
+      "0": 2,
+      "1": 2,
+      "2": 2
+    },
+    "current_paradigm_index": 2,
+    "tried_paradigms": [
+      {
+        "idea": "Dense interface hotspot cluster: use 5 tightly-clustered contact residues B77/B80/B82/B83/B84 to saturate the core binding epitope",
+        "description": "The contact list shows B77, B80, B81, B82, B83, B84 form a dense spatial cluster on IL-7Ralpha. Using 5 of these (B77, B80, B82, B83, B84) instead of 3 sparse hotspots provides much denser epitope coverage. This forces the binder to engage the entire hydrophobic/charged patch rather than isolated anchors. Keep B84 as the proven anchor, add B82/B83 (adjacent residues with strong contacts), B80 (nearby contact), and B77 (tightest contact at 2.73A). Drop B143 which is distant from this cluster. Increase binder length slightly to [70, 110] to accommodate engagement with the larger epitope surface. Use seed=42 for fresh exploration. Keep sc_scale_score at 1.5 (slightly reduced from 1.8 to avoid over-constraining the dense epitope). Use tan noise for local_latents which is smoother than 1/t2 and may better handle the complex multi-residue interface.",
+        "what_to_optimize": "best_total_reward via denser epitope engagement, diversity_bonus via more constrained but varied designs",
+        "cautions": "5 hotspots is more constraining - ensure binder_length is sufficient to reach all hotspots. B81 is also a candidate but 5 is a good balance. Verify all residues are in ALLOWED_HOTSPOTS.",
+        "approach_type": "hotspot_cluster_selection",
+        "uses": 2,
+        "starting_score": 0.8446811909851342,
+        "ending_score": 0.8446811909851342,
+        "score_improvement": 0.0,
+        "outcome": "FAILED"
+      },
+      {
+        "idea": "Maximize diversity bonus with beam-search algorithm and broader length range to generate more unique sequence types",
+        "description": "The evaluator's combined_score includes a diversity_bonus of up to 0.10 based on unique aatype sequences. Switching from best-of-n to beam-search with n_branch=2 and beam_width=2 explores more of the design space and can produce more diverse sequences. Use a wider binder length range [60, 120] with num_length_samples=2 to sample different length classes. Keep the proven hotspots B77, B84, B143 but use seed=99 for fresh exploration. Reduce sc_scale_score to 1.2 for both channels to allow more sequence diversity rather than forcing convergence to a single interface mode. Use power schedule (p=1.5) for bb_ca to spread backbone denoising, and uniform schedule for local_latents to maximize sequence diversity. This approach targets the diversity_bonus component which can add up to 0.10 to the score.",
+        "what_to_optimize": "diversity_bonus component of combined_score, num_valid_designs",
+        "cautions": "beam-search with n_branch=2 beam_width=2 is capped to 2 in stage2. Wider length range increases sampling diversity. Ensure beam_search params are within GPU memory limits.",
+        "approach_type": "beam_search_diversity",
+        "uses": 2,
+        "starting_score": 0.8446811909851342,
+        "ending_score": 0.8446811909851342,
+        "score_improvement": 0.0,
+        "outcome": "FAILED"
+      },
+      {
+        "idea": "Optimize sampling parameters: use 1/t noise for both channels with higher p values and stronger sc_scale_score=2.0 with reduced noise scale for sharper interface definition",
+        "description": "The current program uses 1/t2 for local_latents which is very sharp near t=0 but may cause instability. Switch both noise modes to the stable 1/t with p=1.5 for bb_ca and p=2.0 for local_latents to get controlled sharpness. Increase sc_scale_score to 2.0 (maximum effective range before diminishing returns) for both channels to maximize self-conditioning guidance. Reduce sc_scale_noise to 0.05 (near-zero) to minimize noise injection during self-conditioning, making the conditioning signal cleaner. Use hotspots B77, B82, B84, B143 (4 hotspots: tightest contact + adjacent + hydrophobic core + C-terminal anchor) for better spatial coverage than 3 hotspots. Use log schedule p=2.0 for bb_ca (concentrate early backbone steps) and power p=3.0 for local_latents (concentrate side-chain refinement very close to t=0). Seed=7 (evaluator default) which may have been well-tuned for this target.",
+        "what_to_optimize": "best_total_reward via sharper self-conditioning and cleaner noise schedule",
+        "cautions": "sc_scale_score=2.0 is aggressive - monitor for mode collapse. 1/t noise with p>1 effectively scales the noise; ensure p values stay in 0.05-8.0 range. Four hotspots provides good coverage without over-constraining.",
+        "approach_type": "sampling_parameter_optimization",
+        "uses": 2,
+        "starting_score": 0.8446811909851342,
+        "ending_score": 0.8446811909851342,
+        "score_improvement": 0.0,
+        "outcome": "FAILED"
+      }
+    ],
+    "best_score_at_paradigm_gen": 0.8446811909851342,
+    "best_score_during_paradigm": 0.9129348642354069
+  }
+}
