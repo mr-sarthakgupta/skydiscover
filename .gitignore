@@ -34,8 +34,8 @@ htmlcov/
 secrets.yaml
 
 # Logs & outputs
-*.log
-*.jsonl
+# *.log
+# *.jsonl
 # output*/
 # outputs*/
 # outputs_*/
@@ -51,10 +51,10 @@ benchmarks/ADRS/cloudcast/examples/
 benchmarks/ADRS/llm_sql/datasets/
 
 # Generated test outputs (re-generate with test_all_benchmarks.sh)
-tests/**/test_outputs_*/
+# tests/**/test_outputs_*/
 
 # Evaluation run outputs
-eval_runs/
+# eval_runs/
 
 # Local documentation
 tasks/

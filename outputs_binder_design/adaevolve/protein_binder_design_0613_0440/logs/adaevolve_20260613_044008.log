@@ -1,0 +1,14 @@
+2026-06-13 04:40:08,724 - skydiscover.search.utils.logging_utils - INFO - Logging to outputs_binder_design/adaevolve/protein_binder_design_0613_0440/logs/adaevolve_20260613_044008.log
+2026-06-13 04:40:08,724 - skydiscover.search.adaevolve.database - INFO - AdaEvolveDatabase initialized: num_islands=2, decay=0.9, intensity=[0.15, 0.5], migration=True (interval=15), unified_archive=True, adaptive_search=True, ucb_selection=True, dynamic_islands=True, paradigm_breakthrough=True, multiobjective=False
+2026-06-13 04:40:08,724 - skydiscover.runner - INFO - Runner ready: search=adaevolve, program=benchmarks/protein_binder_design/initial_program.py
+2026-06-13 04:40:12,076 - botocore.tokens - INFO - Found token in environment variables.
+2026-06-13 04:40:12,080 - skydiscover.llm - INFO - AWS Bedrock LLM: us.anthropic.claude-sonnet-4-6 region=us-east-1
+2026-06-13 04:40:14,198 - botocore.tokens - INFO - Found token in environment variables.
+2026-06-13 04:40:16,283 - botocore.tokens - INFO - Found token in environment variables.
+2026-06-13 04:40:16,292 - skydiscover.evaluation.evaluator - INFO - Initialized evaluator with benchmarks/protein_binder_design/evaluator.py
+2026-06-13 04:40:16,299 - skydiscover.search.default_discovery_controller - INFO - Agentic mode enabled (codebase: /workspace/protein-ag/skydiscover/benchmarks/protein_binder_design)
+2026-06-13 04:40:16,299 - skydiscover.search.default_discovery_controller - INFO - DiscoveryController initialized: num_context_programs=4
+2026-06-13 04:40:18,375 - botocore.tokens - INFO - Found token in environment variables.
+2026-06-13 04:40:18,382 - skydiscover.search.adaevolve.controller - INFO - Paradigm LLM: using guide_models [us.anthropic.claude-sonnet-4-6]
+2026-06-13 04:40:18,382 - skydiscover.search.adaevolve.controller - INFO - AdaEvolveController initialized (language=python, paradigm_breakthrough=True)
+2026-06-13 04:40:18,382 - skydiscover.runner - INFO - Adding initial program to database
