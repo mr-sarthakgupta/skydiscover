@@ -5,7 +5,7 @@
 </h1>
 
 
- <p align="center"> Protein Binder Search with LLM Agents and Genetic Search</p>
+ <p align="center"> Binder Design Branch: Using SkyDiscover for Protein Binder Search</p>
   <p align="center">
   <a href="https://skydiscover-ai.github.io/blog.html"><img src="https://img.shields.io/badge/blog-SkyDiscover-orange?style=flat-square" alt="Blog" /></a>
   <a href="https://arxiv.org/abs/2602.20133"><img src="https://img.shields.io/badge/paper-AdaEvolve-red?style=flat-square" alt="AdaEvolve Paper" /></a>
@@ -20,14 +20,19 @@
 </p>
 
 
-**SkyDiscover** is now centered on protein binder search: an LLM agent proposes
-and revises binder-design run specifications, while genetic search explores the
-space of hotspots, binder lengths, sampling schedules, and test-time search
-settings. The main workflow lives in [`protein_binder_design/`](protein_binder_design/)
-and targets Proteina-Complexa generation for the 3DI3 IL-7Ralpha system.
+This fork branch applies **SkyDiscover**, an existing LLM-agent plus genetic-search
+package, to protein binder design. The upstream project is
+[`skydiscover-ai/skydiscover`](https://github.com/skydiscover-ai/skydiscover),
+a modular framework for AI-driven scientific and algorithmic discovery across
+200+ optimization tasks.
 
-The repository still includes the general SkyDiscover optimization framework and
-benchmark suite used to drive the binder search. Its core adaptive algorithms are:
+In this branch, the binder-design workflow lives in
+[`protein_binder_design/`](protein_binder_design/). An LLM agent proposes and
+revises Proteina-Complexa run specifications, while AdaEvolve genetic search
+explores hotspots, binder lengths, sampling schedules, and test-time search
+settings for the 3DI3 IL-7Ralpha system.
+
+SkyDiscover's core adaptive algorithms are:
 
 - **[AdaEvolve](https://arxiv.org/abs/2602.20133)**, which dynamically adjusts its optimization behavior based on observed progress.
 - **[EvoX](https://arxiv.org/abs/2602.23413)**, which dynamically evolves the optimization (evolution) strategy itself using LLMs on the fly.
@@ -38,10 +43,10 @@ benchmarks for broader algorithmic discovery experiments.
 
 ---
 
-## Protein Binder Search
+## Binder Design Workflow
 
-The top-level [`protein_binder_design/`](protein_binder_design/) project packages
-the 3DI3 IL-7Ralpha binder search loop:
+The [`protein_binder_design/`](protein_binder_design/) directory packages this
+branch's 3DI3 IL-7Ralpha binder search loop:
 
 - `initial_program.py` is the seed candidate the search mutates.
 - `config.yaml` enables the LLM agent and AdaEvolve genetic search.
@@ -109,7 +114,7 @@ The two methods are **composable**: EvoX can evolve using AdaEvolve as its start
 
 | | Benchmark | Domain | Tasks | Description |
 |-|-----------|--------|------:|-------------|
-| 🧬 | [protein_binder_design/](protein_binder_design/) | Protein design | 1 | LLM-agent + genetic search for 3DI3 IL-7Ralpha binder-design settings |
+| 🧬 | [protein_binder_design/](protein_binder_design/) | Protein design | 1 | This branch's LLM-agent + genetic-search workflow for 3DI3 IL-7Ralpha binder-design settings |
 | 🔢 | [math/](benchmarks/math/) | Math | 14 | Circle packing, Erdos problems, geometric optimization |
 | 🖥️ | [ADRS/](benchmarks/ADRS/) | Systems | 5 | Cloud scheduling, load balancing, MoE expert placement |
 | ⚡ | [gpu_mode/](benchmarks/gpu_mode/) | Systems | 4 | GPU kernel optimization |
@@ -135,7 +140,7 @@ export OPENAI_API_KEY="<your-key>"
 export CKPT_PATH="/path/to/complexa/checkpoints"
 export AF2_DIR="/path/to/alphafold/params"
 
-# Run the protein binder search project
+# Run this branch's protein binder design workflow
 uv run skydiscover-run protein_binder_design/initial_program.py \
   protein_binder_design/evaluator.py \
   --config protein_binder_design/config.yaml \

@@ -2,9 +2,9 @@
 
 ~200 optimization tasks across math, systems, algorithms, and reasoning.
 
-The protein binder search workflow is now the main top-level project at
+This branch's protein binder design application lives at
 [`../protein_binder_design/`](../protein_binder_design/). This directory contains
-the remaining general-purpose benchmark suite.
+the general-purpose SkyDiscover benchmark suite from the upstream project.
 
 ## Quick Start
 

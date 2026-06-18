@@ -1,8 +1,11 @@
-# Protein Binder Search
+# Protein Binder Design Workflow
 
-This is the main SkyDiscover project for protein binder search. It combines an
-LLM agent with AdaEvolve genetic search to evolve Proteina-Complexa binder-design
-run specifications against RCSB 3DI3 chain B, human IL-7Ralpha ectodomain.
+This directory contains this branch's protein binder design application built on
+top of SkyDiscover, the existing LLM-agent plus genetic-search package from
+[`skydiscover-ai/skydiscover`](https://github.com/skydiscover-ai/skydiscover).
+It combines an LLM agent with AdaEvolve genetic search to evolve
+Proteina-Complexa binder-design run specifications against RCSB 3DI3 chain B,
+human IL-7Ralpha ectodomain.
 
 The evolved program does not run models directly. It returns a constrained
 dictionary of hotspots, binder length, sampling settings, and test-time search
