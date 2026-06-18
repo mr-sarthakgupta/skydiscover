@@ -36,9 +36,9 @@ secrets.yaml
 # Logs & outputs
 *.log
 *.jsonl
-output*/
-outputs*/
-outputs_*/
+# output*/
+# outputs*/
+# outputs_*/
 
 
 # Benchmark generated data

@@ -1,0 +1,20 @@
+{
+  "id": "ad816dc4-2fe6-4cbc-8442-6e5f5e5608bf",
+  "generation": 0,
+  "iteration": 0,
+  "current_iteration": 1,
+  "metrics": {
+    "combined_score": 0.0,
+    "best_total_reward": NaN,
+    "mean_total_reward": NaN,
+    "num_valid_designs": 0.0,
+    "stage": "stage1",
+    "error": "Proteina generation failed with exit code 1\nSTDOUT:\nLoading Atomworks Patches\n[atomworks_patches] Patched initialize_chain_info_from_category\n[atomworks_patches] Patched atom_array_to_encoding (added atomize_token parameter)\n\nSTDERR:\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/workspace/protein-ag/Proteina-Complexa/src/proteinfoundation/generate.py\", line 765, in <module>\n    main()\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/main.py\", line 90, in decorated_main\n    _run_hydra(\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/utils.py\", line 394, in _run_hydra\n    _run_app(\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/utils.py\", line 457, in _run_app\n    run_and_report(\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/utils.py\", line 222, in run_and_report\n    raise ex\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/utils.py\", line 219, in run_and_report\n    return func()\n           ^^^^^^\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/utils.py\", line 458, in <lambda>\n    lambda: hydra.run(\n            ^^^^^^^^^^\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/hydra.py\", line 105, in run\n    cfg = self.compose_config(\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/hydra.py\", line 594, in compose_config\n    cfg = self.config_loader.load_configuration(\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/config_loader_impl.py\", line 142, in load_configuration\n    return self._load_configuration_impl(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/config_loader_impl.py\", line 243, in _load_configuration_impl\n    self.ensure_main_config_source_available()\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/config_loader_impl.py\", line 129, in ensure_main_config_source_available\n    self._missing_config_error(\n  File \"/workspace/protein-ag/Proteina-Complexa/.venv/lib/python3.12/site-packages/hydra/_internal/config_loader_impl.py\", line 102, in _missing_config_error\n    raise MissingConfigException(\nhydra.errors.MissingConfigException: Primary config directory not found.\nCheck that the config directory '/workspace/protein-ag/Proteina-Complexa/src/proteinfoundation/configs' exists and readable\n",
+    "cascade_stage1_time_seconds": 18.660061359405518,
+    "cascade_stage1_threshold": 0.05,
+    "cascade_stage1_passed": 0.0
+  },
+  "language": "python",
+  "timestamp": 1781325700.6996818,
+  "saved_at": 1781325757.5252268
+}
