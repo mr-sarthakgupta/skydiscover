@@ -2,6 +2,10 @@
 
 ~200 optimization tasks across math, systems, algorithms, and reasoning.
 
+The protein binder search workflow is now the main top-level project at
+[`../protein_binder_design/`](../protein_binder_design/). This directory contains
+the remaining general-purpose benchmark suite.
+
 ## Quick Start
 
 Install dependencies first:

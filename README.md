@@ -5,7 +5,7 @@
 </h1>
 
 
- <p align="center"> A Flexible Framework for AI-Driven Scientific and Algorithmic Discovery</p>
+ <p align="center"> Protein Binder Search with LLM Agents and Genetic Search</p>
   <p align="center">
   <a href="https://skydiscover-ai.github.io/blog.html"><img src="https://img.shields.io/badge/blog-SkyDiscover-orange?style=flat-square" alt="Blog" /></a>
   <a href="https://arxiv.org/abs/2602.20133"><img src="https://img.shields.io/badge/paper-AdaEvolve-red?style=flat-square" alt="AdaEvolve Paper" /></a>
@@ -20,21 +20,42 @@
 </p>
 
 
-**SkyDiscover** is a modular framework for AI-driven scientific and algorithmic discovery, providing a unified interface for implementing, running, and fairly comparing discovery algorithms across 200+ optimization tasks.
+**SkyDiscover** is now centered on protein binder search: an LLM agent proposes
+and revises binder-design run specifications, while genetic search explores the
+space of hotspots, binder lengths, sampling schedules, and test-time search
+settings. The main workflow lives in [`protein_binder_design/`](protein_binder_design/)
+and targets Proteina-Complexa generation for the 3DI3 IL-7Ralpha system.
 
-SkyDiscover introduces two new adaptive optimization algorithms:
+The repository still includes the general SkyDiscover optimization framework and
+benchmark suite used to drive the binder search. Its core adaptive algorithms are:
 
 - **[AdaEvolve](https://arxiv.org/abs/2602.20133)**, which dynamically adjusts its optimization behavior based on observed progress.
 - **[EvoX](https://arxiv.org/abs/2602.23413)**, which dynamically evolves the optimization (evolution) strategy itself using LLMs on the fly.
 
-SkyDiscover also supports using OpenEvolve, ShinkaEvolve and GEPA to quickly benchmark these algorithms using their own source code. SkyDiscover also hosts native versions of OpenEvolve and GEPA under `openevolve_native` and `gepa_native` algorithms using the modular interface.
-
-SkyDiscover natively supports [Harbor](https://harborframework.com/)-format benchmarks, so you can run external benchmark suites out of the box, including [AlgoTune](https://github.com/oripress/AlgoTune), [EvoEval](https://github.com/evo-eval/evoeval), [HumanEvalFix](https://github.com/bigcode-project/octopack), [BigCodeBench](https://github.com/bigcode-project/bigcodebench), [LiveCodeBench](https://livecodebench.github.io/), [USACO](https://usaco.org/), [CRUSTBench](https://github.com/AInfinity/CRUSTBench), and [CodePDE](https://github.com/).
+SkyDiscover also supports OpenEvolve, ShinkaEvolve, GEPA, and Harbor-format
+benchmarks for broader algorithmic discovery experiments.
 > 🚧 This project is under active development.
 
 ---
 
-## 🏆 Benchmark Performance
+## Protein Binder Search
+
+The top-level [`protein_binder_design/`](protein_binder_design/) project packages
+the 3DI3 IL-7Ralpha binder search loop:
+
+- `initial_program.py` is the seed candidate the search mutates.
+- `config.yaml` enables the LLM agent and AdaEvolve genetic search.
+- `evaluator.py` validates each candidate, launches Proteina-Complexa, and scores
+  generated binders from Proteina reward CSVs.
+- `assets/` contains the cleaned target PDB, raw 3DI3 coordinates, and hotspot
+  metadata used by the evaluator.
+
+The evolved program returns a constrained Python dictionary rather than running
+models directly. That keeps model execution, GPU caps, checkpoint selection, and
+reward parsing inside the evaluator while the LLM-agent search focuses on
+scientific design choices.
+
+## 🏆 Search Engine and Benchmark Performance
 
 Across ~200 optimization benchmarks, AdaEvolve and EvoX achieve the strongest open-source results: matching or exceeding AlphaEvolve and human SOTA, and outperforming OpenEvolve, GEPA, and ShinkaEvolve under identical generation budgets.
 
@@ -84,10 +105,11 @@ The two methods are **composable**: EvoX can evolve using AdaEvolve as its start
 </details>
 
 <details>
-<summary><b>Task breakdown across math, systems, and programming challenges</b></summary>
+<summary><b>Additional benchmark tasks across math, systems, and programming challenges</b></summary>
 
 | | Benchmark | Domain | Tasks | Description |
 |-|-----------|--------|------:|-------------|
+| 🧬 | [protein_binder_design/](protein_binder_design/) | Protein design | 1 | LLM-agent + genetic search for 3DI3 IL-7Ralpha binder-design settings |
 | 🔢 | [math/](benchmarks/math/) | Math | 14 | Circle packing, Erdos problems, geometric optimization |
 | 🖥️ | [ADRS/](benchmarks/ADRS/) | Systems | 5 | Cloud scheduling, load balancing, MoE expert placement |
 | ⚡ | [gpu_mode/](benchmarks/gpu_mode/) | Systems | 4 | GPU kernel optimization |
@@ -110,20 +132,20 @@ See [Dependency extras](#dependency-extras) for install commands per benchmark.
 # Install
 uv sync
 export OPENAI_API_KEY="<your-key>"
+export CKPT_PATH="/path/to/complexa/checkpoints"
+export AF2_DIR="/path/to/alphafold/params"
 
-# Try the circle packing benchmark
-uv sync --extra math
-uv run skydiscover-run benchmarks/math/circle_packing/initial_program.py \
-  benchmarks/math/circle_packing/evaluator.py \
-  --config benchmarks/math/circle_packing/config.yaml \
-  --search evox \
-  --iterations 100
-
-uv run skydiscover-run benchmarks/math/circle_packing/initial_program.py \
-  benchmarks/math/circle_packing/evaluator.py \
-  --config benchmarks/math/circle_packing/config.yaml \
+# Run the protein binder search project
+uv run skydiscover-run protein_binder_design/initial_program.py \
+  protein_binder_design/evaluator.py \
+  --config protein_binder_design/config.yaml \
   --search adaevolve \
-  --iterations 100
+  --iterations 30
+
+# Schema-only smoke test when checkpoints/AF2 params are not available
+SKYDISCOVER_BINDER_VALIDATE_ONLY=1 \
+python protein_binder_design/evaluator.py \
+  protein_binder_design/initial_program.py
 
 # Or run on your own problem
 # algo can be "evox", "adaevolve", "openevolve", "gepa", "shinkaevolve"
@@ -346,6 +368,7 @@ llm:
 
 ```bash
 uv sync                              # Base install
+                                      # Protein binder search uses the Proteina-Complexa runtime; see protein_binder_design/
 uv sync --extra math                 # Math benchmarks (SciPy, JAX, PyWavelets, …)
 uv sync --extra adrs                 # ADRS systems benchmarks
 uv sync --extra frontier-cs          # Frontier-CS benchmark tooling
@@ -363,6 +386,7 @@ If a benchmark ships its own `requirements.txt`, also run: `uv pip install -r pa
 
 ## 🛠️ Extending SkyDiscover
 
+- **Protein binder search** → [`protein_binder_design/`](protein_binder_design/)
 - **New benchmark** → [`benchmarks/README.md`](benchmarks/README.md#adding-a-benchmark)
 - **New search algorithm** → [`skydiscover/search/README.md`](skydiscover/search/README.md)
 - **New context builder** → [`skydiscover/context_builder/README.md`](skydiscover/context_builder/README.md)

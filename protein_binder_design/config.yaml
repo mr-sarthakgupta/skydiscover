@@ -1,0 +1,124 @@
+# Protein binder search project: 3DI3 IL-7Ralpha
+# Usage:
+#   uv run skydiscover-run protein_binder_design/initial_program.py \
+#     protein_binder_design/evaluator.py \
+#     -c protein_binder_design/config.yaml -s adaevolve -i 20
+
+language: python
+diff_based_generation: true
+max_iterations: 30
+checkpoint_interval: 1
+max_solution_length: 30000
+random_seed: 42
+
+llm:
+  models:
+    - name: "us.anthropic.claude-sonnet-4-6"
+      weight: 1.0
+  api_base: "bedrock:us-east-1"
+  temperature: 0.6
+  max_tokens: 30000
+  timeout: 1800
+  retries: 2
+  retry_delay: 10
+
+prompt:
+  system_message: |
+    You are optimizing a protein binder design pipeline on top of Proteina-Complexa.
+
+    ## Task
+    Improve the EVOLVE-BLOCK in `initial_program.py`. The evolved program must
+    return a Python dictionary from `propose_design_run()` (or `run_discovery()`)
+    describing one bounded Proteina-Complexa run. Do not run Proteina yourself,
+    import external libraries, access the filesystem, spawn subprocesses, or
+    fabricate metrics. The evaluator validates your dictionary and performs the
+    actual model run.
+
+    ## Target
+    The target is RCSB PDB 3DI3 chain B: human IL-7 receptor alpha ectodomain.
+    The benchmark-local target PDB is a cleaned chain-B-only structure with 193
+    modeled residues. Proteina uses hotspot strings of the form `B84`.
+
+    Prior art from the RFdiffusion/OpenProtein IL-7Ralpha tutorial uses original
+    chain-B positions `B62`, `B84`, and `B143`. Treat them as a strong baseline,
+    not a hard rule. You may choose other modeled chain-B hotspot residues if
+    your reasoning suggests a better epitope.
+
+    Contact-derived interface hotspot candidates from the downloaded 3DI3
+    IL-7/IL-7Ralpha complex include:
+      B77, B192, B31, B193, B138, B80, B139, B82, B81, B79,
+      B57, B58, B83, B78, B59, B33, B191, B102, B104
+
+    ## Candidate Schema
+    Return a dict with these keys. Keep values in the supported ranges.
+
+    - `hotspot_residues`: 1 to 8 modeled chain-B residues, e.g. `["B62", "B84", "B143"]`.
+    - `binder_length`: `[min_len, max_len]`, each 40 to 220, with min <= max and range width <= 120.
+    - `checkpoint_selection`: use `"complexa_default"` unless you know another checkpoint filename exists under `CKPT_PATH`.
+    - `denoising_steps`: 10 to 400. Larger can improve samples but costs more; cascade evaluation caps this for early stages.
+    - `self_conditioning`: boolean.
+    - `seed`: non-negative integer.
+    - `num_length_samples`: 1 to 8. On 24 GB GPUs the evaluator caps stage 2 to 2.
+    - `batch_size`: 1 to 8. On 24 GB GPUs the evaluator caps stage 2 to 2.
+    - `sampling`: dict with:
+      - `bb_ca_schedule`, `local_latents_schedule`: `{"mode": "log"|"power"|"uniform", "p": 0.05..8.0}`
+      - `bb_ca_noise`, `local_latents_noise`: `{"mode": "1/t"|"tan"|"1-t/t"|"1/t2"|"1/t1p5"|"2/t"|"2/t2"|"2/t1p5", "p": 0.05..8.0}`
+        (do **not** use `power`, `log`, or `linear` for noise — Proteina will crash)
+      - `bb_ca_sc_scale_noise`, `local_latents_sc_scale_noise`: 0.0..2.0
+      - `bb_ca_sc_scale_score`, `local_latents_sc_scale_score`: 0.0..5.0
+    - `search`: dict with:
+      - `algorithm`: one of `single-pass`, `best-of-n`, `beam-search`, `fk-steering`, `mcts`
+      - `best_of_n.replicas`: 1..8
+      - `beam_search.n_branch`, `beam_search.beam_width`: 1..8
+      - `fk_steering.n_branch`, `fk_steering.beam_width`: 1..8
+      - `fk_steering.temperature`: 0.0..5.0
+      - `mcts.n_simulations`: 1..64
+      - `mcts.exploration_prob`: 0.0..1.0
+      - `mcts.exploration_constant`: 0.0..10.0
+
+    ## Objective
+    Maximize the evaluator's `combined_score`. The evaluator runs Proteina's
+    binder generation pipeline against 3DI3 chain B and reads Proteina's own
+    `rewards_*.csv`. The primary signal is `total_reward`, which is driven by
+    Proteina's configured binder reward model. Higher is better.
+
+    Good candidates should make a focused epitope choice, keep runtime bounded,
+    and choose search/test-time-scaling settings that improve the chance of a
+    strong binder without exploding the evaluation cost.
+
+    ## Constraints
+    - Keep the program pure Python with no imports except `from __future__` and `typing`.
+    - Do not use file I/O, subprocesses, network calls, eval/exec, or dynamic imports.
+    - Do not return multiple candidate specs or implement a local search loop.
+    - The evaluator will reject invalid residue IDs, unsupported algorithms,
+      impossible length ranges, unsafe source code, or missing entry points.
+    - **24 GB GPU memory limits (enforced in evaluator):** stage 2 caps
+      `batch_size` and `num_length_samples` to 2, search replicas/branches to 2,
+      and `max_batch_size` to 4 so Proteina chunks BestOfN batches. Prefer
+      `batch_size=2`, `num_length_samples=2`, `best_of_n.replicas=2` — do not
+      push higher; larger values waste eval time and OOM.
+    - Prefer `best-of-n` or `single-pass`. `fk-steering` is fragile; only use
+      safe noise modes (`1/t`, `tan`).
+
+search:
+  share_llm: true
+
+evaluator:
+  timeout: 9000
+  cascade_evaluation: true
+  cascade_thresholds:
+    - 0.05
+    - 0.25
+
+agentic:
+  enabled: true
+  codebase_root: "protein_binder_design"
+  max_steps: 20
+  per_step_timeout: 900.0
+  overall_timeout: 3600.0
+  max_context_chars: 300000
+  max_file_chars: 100000
+  max_files_read: 12
+  run_command_default_timeout: 120
+  run_command_max_timeout: 300
+  run_command_max_output_chars: 4000
